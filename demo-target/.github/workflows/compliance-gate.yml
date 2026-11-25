@@ -1,0 +1,16 @@
+# Runs the compliance gate on every pull request: fails the PR if it introduces violations.
+name: compliance-gate
+on: pull_request
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install "git+https://github.com/leyasherman/audit-readiness-bot"
+      - name: Compliance gate
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python -m auditbot check . --base origin/${{ github.base_ref }}

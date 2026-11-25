@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audit Readiness Brief</title>
+{% set s = ev.summary.readiness_score %}
+{% set col = '#34d399' if s >= 85 else ('#fbbf24' if s >= 60 else '#f43f5e') %}
+{% set col2 = '#22d3ee' if s >= 85 else ('#fb923c' if s >= 60 else '#e11d48') %}
+{% set verdict = 'AUDIT READY' if s >= 85 else ('NEEDS ATTENTION' if s >= 60 else 'AT RISK') %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#05070f; --bg2:#0a0f1f; --glass:rgba(255,255,255,.045); --glass2:rgba(255,255,255,.08);
+    --ink:#e8ecf8; --muted:#8a93ad; --line:rgba(148,163,209,.16);
+    --cyan:#22d3ee; --violet:#a78bfa; --pink:#f472b6;
+    --pass:#34d399; --fail:#f43f5e; --crit:#ff2e63; --high:#fb7185; --med:#fbbf24; --low:#94a3b8;
+    --accent:{{ col }}; --accent2:{{ col2 }};
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing:border-box }
+  html { scroll-behavior:smooth }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 var(--sans); overflow-x:hidden; min-height:100vh }
+  ::selection { background:var(--cyan); color:#000 }
+
+  /* ---------- background layers ---------- */
+  #net { position:fixed; inset:0; z-index:0; pointer-events:none }
+  .aurora { position:fixed; inset:-20%; z-index:0; pointer-events:none; filter:blur(90px); opacity:.55 }
+  .aurora i { position:absolute; border-radius:50%; mix-blend-mode:screen; animation:drift 22s ease-in-out infinite alternate }
+  .aurora i:nth-child(1) { width:48vw; height:48vw; left:5%; top:0; background:radial-gradient(circle,#4f46e5 0,transparent 65%) }
+  .aurora i:nth-child(2) { width:42vw; height:42vw; right:0; top:10%; background:radial-gradient(circle,#0891b2 0,transparent 65%); animation-duration:28s; animation-delay:-6s }
+  .aurora i:nth-child(3) { width:38vw; height:38vw; left:30%; bottom:-5%; background:radial-gradient(circle,{{ col }} 0,transparent 65%); opacity:.45; animation-duration:32s; animation-delay:-12s }
+  @keyframes drift { 0%{transform:translate(0,0) scale(1)} 50%{transform:translate(6vw,4vh) scale(1.15)} 100%{transform:translate(-4vw,8vh) scale(.95)} }
+  .grid { position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:56px 56px; opacity:.35;
+    mask-image:radial-gradient(ellipse at 50% 0%,#000 0,transparent 75%); -webkit-mask-image:radial-gradient(ellipse at 50% 0%,#000 0,transparent 75%) }
+  .scanline { position:fixed; left:0; right:0; height:140px; z-index:1; pointer-events:none; top:-140px;
+    background:linear-gradient(180deg,transparent,rgba(34,211,238,.07) 70%,rgba(34,211,238,.35) 99%,transparent);
+    animation:sweep 7s cubic-bezier(.5,0,.5,1) infinite }
+  @keyframes sweep { 0%{transform:translateY(0)} 60%,100%{transform:translateY(calc(100vh + 140px))} }
+
+  main { position:relative; z-index:2; max-width:1120px; margin:0 auto; padding:48px 16px 80px }
+
+  /* ---------- boot overlay ---------- */
+  #boot { position:fixed; inset:0; z-index:50; background:radial-gradient(ellipse at center,#0b1226 0,#03050b 70%);
+    display:grid; place-items:center; transition:opacity .6s ease, visibility .6s; cursor:pointer }
+  #boot.done { opacity:0; visibility:hidden }
+  #boot .term { width:min(640px,calc(100vw - 32px)); font:13px/1.9 var(--mono); color:#9fb3d9 }
+  #boot .term .l { opacity:0; transform:translateX(-6px); transition:all .25s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  #boot .term .l.on { opacity:1; transform:none }
+  #boot .ok { color:var(--pass) } #boot .p { color:var(--cyan) } #boot .w { color:var(--med) }
+  #boot .bar { height:3px; background:var(--glass2); border-radius:3px; margin-top:18px; overflow:hidden }
+  #boot .bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink)); box-shadow:0 0 18px var(--cyan); transition:width 2s cubic-bezier(.6,0,.2,1) }
+  #boot .hint { margin-top:14px; font-size:11px; color:#4d5878; letter-spacing:.12em }
+
+  /* ---------- reveal ---------- */
+  .rv { opacity:0; transform:translateY(26px); transition:opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1) }
+  .rv.in { opacity:1; transform:none }
+
+  /* ---------- hero ---------- */
+  header.hero { display:grid; grid-template-columns:1fr auto; gap:40px; align-items:center }
+  .eyebrow { display:inline-flex; align-items:center; gap:10px; font:600 11px/1 var(--mono); letter-spacing:.18em; color:var(--cyan);
+    padding:8px 12px; border:1px solid rgba(34,211,238,.35); border-radius:99px; background:rgba(34,211,238,.06) }
+  .eyebrow .dot { width:7px; height:7px; border-radius:50%; background:var(--cyan); box-shadow:0 0 10px var(--cyan); animation:blink 1.6s infinite }
+  @keyframes blink { 50%{opacity:.25} }
+  h1 { font-size:clamp(34px,6vw,64px); line-height:1.02; margin:18px 0 14px; letter-spacing:-.035em; font-weight:700;
+    background:linear-gradient(100deg,#fff 0%,#c7d2fe 30%,var(--cyan) 55%,var(--violet) 75%,#fff 100%); background-size:250% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent; animation:shine 8s linear infinite }
+  @keyframes shine { to { background-position:-250% 0 } }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 }
+  .chip { font:12px/1 var(--mono); color:#c3cbe3; padding:7px 10px; border-radius:8px; background:var(--glass); border:1px solid var(--line) }
+  .chip b { color:var(--cyan); font-weight:600 }
+  .frameworks { color:var(--muted); font-size:13px }
+  .actions { display:flex; gap:10px; margin-top:22px; flex-wrap:wrap }
+  .btn { font:600 13px/1 var(--sans); color:var(--ink); padding:11px 16px; border-radius:10px; cursor:pointer; border:1px solid var(--line);
+    background:var(--glass); backdrop-filter:blur(10px); transition:all .2s; position:relative; overflow:hidden }
+  .btn:hover { border-color:var(--cyan); box-shadow:0 0 0 1px var(--cyan),0 0 24px rgba(34,211,238,.35); transform:translateY(-1px) }
+  .btn.primary { background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(167,139,250,.25)); border-color:rgba(167,139,250,.5) }
+
+  /* score ring */
+  .gauge { position:relative; width:300px; height:300px; flex:none }
+  .gauge svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible }
+  .gauge .orbit { animation:spin 30s linear infinite; transform-origin:150px 150px }
+  .gauge .orbit2 { animation:spin 18s linear infinite reverse; transform-origin:150px 150px }
+  @keyframes spin { to { transform:rotate(360deg) } }
+  .gauge .arc { filter:drop-shadow(0 0 10px var(--accent)) drop-shadow(0 0 28px var(--accent)); transition:stroke-dashoffset 2.2s cubic-bezier(.2,.8,.2,1) }
+  .gauge .center { position:absolute; inset:0; display:grid; place-items:center; text-align:center }
+  .gauge .num { font:700 76px/1 var(--sans); letter-spacing:-.04em; color:#fff; text-shadow:0 0 30px var(--accent) }
+  .gauge .num small { font-size:30px; color:var(--accent) }
+  .gauge .lbl { font:600 11px/1 var(--mono); letter-spacing:.22em; color:var(--muted); margin-top:8px }
+  .verdict { display:inline-block; margin-top:12px; font:700 11px/1 var(--mono); letter-spacing:.16em; padding:7px 11px; border-radius:99px;
+    color:var(--accent); border:1px solid var(--accent); background:color-mix(in srgb,var(--accent) 12%,transparent);
+    box-shadow:0 0 18px color-mix(in srgb,var(--accent) 45%,transparent); animation:pulse 2.4s ease-in-out infinite }
+  @keyframes pulse { 50% { box-shadow:0 0 4px color-mix(in srgb,var(--accent) 30%,transparent) } }
+
+  /* ---------- cards ---------- */
+  .card { position:relative; background:linear-gradient(180deg,var(--glass2),var(--glass)); border:1px solid var(--line); border-radius:18px;
+    padding:22px 24px; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); overflow:hidden;
+    box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 20px 50px -20px rgba(0,0,0,.6) }
+  .card::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .3s;
+    background:radial-gradient(400px circle at var(--mx,50%) var(--my,50%),rgba(34,211,238,.14),transparent 45%) }
+  .card:hover::before { opacity:1 }
+  .tilt { transition:transform .25s ease, border-color .25s; transform-style:preserve-3d; will-change:transform }
+  .tilt.in { transition:transform .25s ease, border-color .25s, opacity .8s }
+  .tilt:hover { border-color:rgba(34,211,238,.35) }
+
+  h2 { display:flex; align-items:center; gap:12px; font:600 12px/1 var(--mono); text-transform:uppercase; letter-spacing:.2em; color:var(--muted); margin:64px 0 18px }
+  h2::before { content:""; width:28px; height:2px; background:linear-gradient(90deg,var(--cyan),var(--violet)); box-shadow:0 0 10px var(--cyan) }
+  h2 .n { color:var(--cyan) }
+
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:44px }
+  .kpi b { display:block; font:700 40px/1.1 var(--sans); letter-spacing:-.03em }
+  .kpi > span { color:var(--muted); font-size:13px; display:block; padding-right:40px }
+  header.hero > *, .kpis > *, .duo > *, .test > * { min-width:0 }
+  .kpi .ico { position:absolute; right:18px; top:18px; width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+    background:var(--glass2); border:1px solid var(--line); font-size:16px }
+  .kpi.bad b { color:var(--fail); text-shadow:0 0 22px rgba(244,63,94,.6) }
+  .kpi.good b { color:var(--pass); text-shadow:0 0 22px rgba(52,211,153,.45) }
+  .warn { margin-top:14px; border-color:rgba(251,191,36,.5) } .warn b { color:var(--med) }
+  .method { color:var(--muted); font-size:12.5px; margin-top:14px }
+
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:14px }
+  .card h3 { margin:0 0 4px; font-size:16px; font-weight:600 }
+  .sub { color:var(--muted); font-size:12.5px; margin:0 0 10px }
+  #radar { width:100%; max-width:420px; display:block; margin:0 auto; overflow:visible }
+  #radar text { font:600 11px var(--mono); fill:#aab4d0 }
+  .sevrow { display:grid; grid-template-columns:86px 1fr 70px; gap:12px; align-items:center; margin:16px 0 }
+  .sevrow .name { font:600 11px var(--mono); text-transform:uppercase; letter-spacing:.1em }
+  .track { height:12px; border-radius:99px; background:rgba(255,255,255,.06); overflow:hidden; display:flex; position:relative }
+  .track i { display:block; height:100%; width:0; transition:width 1.6s cubic-bezier(.2,.8,.2,1) }
+  .track i.p { background:linear-gradient(90deg,#059669,var(--pass)); box-shadow:0 0 14px var(--pass) }
+  .track i.f { background:repeating-linear-gradient(45deg,var(--fail) 0 6px,#be123c 6px 12px); box-shadow:0 0 14px var(--fail); animation:stripes 1s linear infinite; background-size:17px 17px }
+  @keyframes stripes { to { background-position:17px 0 } }
+  .sevrow .pts { font:12px var(--mono); color:var(--muted); text-align:right }
+  .legend { display:flex; gap:16px; font-size:12px; color:var(--muted); margin-top:6px }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px }
+
+  /* heatmap */
+  .heat h4 { font:600 11px var(--mono); letter-spacing:.14em; color:var(--muted); margin:6px 0 10px; text-transform:uppercase }
+  .cells { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px }
+  .cell { font:600 12px/1 var(--mono); padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--glass);
+    opacity:0; transform:scale(.6); transition:opacity .4s, transform .5s cubic-bezier(.3,1.6,.5,1); cursor:default; position:relative }
+  .cell.in { opacity:1; transform:none }
+  .cell.PASS { color:var(--pass); border-color:rgba(52,211,153,.4); background:rgba(52,211,153,.08) }
+  .cell.FAIL { color:#fff; border-color:var(--fail); background:rgba(244,63,94,.22); box-shadow:0 0 18px rgba(244,63,94,.45); animation:alarm 1.8s ease-in-out infinite }
+  @keyframes alarm { 50% { box-shadow:0 0 4px rgba(244,63,94,.2) } }
+  .cell.NA { color:var(--muted) }
+  .cell[data-tip]:hover::after { content:attr(data-tip); position:absolute; left:0; top:calc(100% + 8px); z-index:5; width:max-content; max-width:280px;
+    font:500 12px/1.4 var(--sans); color:var(--ink); background:#0d1428; border:1px solid var(--line); padding:8px 10px; border-radius:8px; white-space:pre-line }
+
+  /* summary */
+  .summary { font-size:clamp(17px,2vw,21px); line-height:1.55; margin:0; color:#f2f4fb; min-height:3em }
+  .caret { display:inline-block; width:9px; height:1.1em; background:var(--cyan); vertical-align:-3px; margin-left:2px; animation:blink 1s steps(1) infinite; box-shadow:0 0 10px var(--cyan) }
+  .risks { list-style:none; padding:0; margin:20px 0 0; display:grid; gap:8px }
+  .risks li { display:flex; gap:12px; align-items:center; padding:12px 14px; border-radius:12px; background:rgba(244,63,94,.07); border:1px solid rgba(244,63,94,.25) }
+  .risks li .k { font:700 12px var(--mono); color:var(--fail); width:26px; height:26px; flex:none; border-radius:8px; display:grid; place-items:center; background:rgba(244,63,94,.15) }
+  .src { color:var(--muted); font-size:12px; margin:16px 0 0; font-family:var(--mono) }
+  .src b { color:var(--violet) }
+
+  /* tests */
+  .filters { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap }
+  .filters button { font:600 12px/1 var(--mono); color:var(--muted); background:transparent; border:1px solid var(--line); border-radius:99px; padding:8px 12px; cursor:pointer; transition:all .2s }
+  .filters button.on, .filters button:hover { color:#fff; border-color:var(--cyan); background:rgba(34,211,238,.1) }
+  .tests { display:grid; gap:8px }
+  .test { display:grid; grid-template-columns:78px 1fr auto auto; gap:16px; align-items:center; padding:13px 16px; border-radius:12px;
+    background:var(--glass); border:1px solid var(--line); transition:transform .2s, background .2s, border-color .2s }
+  .test:hover { transform:translateX(4px); background:var(--glass2) }
+  .test.FAIL { border-left:3px solid var(--fail); background:linear-gradient(90deg,rgba(244,63,94,.12),var(--glass) 40%) }
+  .test.PASS { border-left:3px solid var(--pass) }
+  .test.NA { opacity:.5 }
+  .test.hide { display:none }
+  .pill { font:700 11px/1 var(--mono); letter-spacing:.08em; padding:7px 0; border-radius:8px; text-align:center }
+  .pill.PASS { color:var(--pass); background:rgba(52,211,153,.12); border:1px solid rgba(52,211,153,.35) }
+  .pill.FAIL { color:#fff; background:var(--fail); box-shadow:0 0 16px rgba(244,63,94,.6) }
+  .pill.NA { color:var(--muted); border:1px dashed var(--line) }
+  .test .t { font-weight:500 } .test .t small { color:var(--muted); font-family:var(--mono); font-size:11px; margin-left:6px }
+  .tags { display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end }
+  .tag { display:inline-block; font:600 10.5px/1 var(--mono); padding:5px 7px; border-radius:6px; white-space:nowrap; border:1px solid var(--line); color:#c3cbe3 }
+  .tag.soc { color:#67e8f9; border-color:rgba(34,211,238,.3) } .tag.iso { color:#c4b5fd; border-color:rgba(167,139,250,.3) }
+  .sev { font:700 10.5px/1 var(--mono); text-transform:uppercase; letter-spacing:.08em; padding:6px 8px; border-radius:6px; color:#fff; min-width:72px; text-align:center }
+  .sev.critical { background:var(--crit); box-shadow:0 0 14px rgba(255,46,99,.55) } .sev.high { background:#e11d48 } .sev.medium { background:#d97706 } .sev.low { background:#475569 }
+
+  /* findings */
+  .finding { margin-bottom:16px; border-color:rgba(244,63,94,.28) }
+  .finding::after { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,var(--fail),var(--violet)); box-shadow:0 0 18px var(--fail) }
+  .finding .top { display:flex; flex-wrap:wrap; gap:6px; align-items:center }
+  .finding .fid { font:700 12px var(--mono); color:var(--fail); margin-right:4px }
+  .finding h3 { font-size:20px; margin:10px 0 4px; letter-spacing:-.01em }
+  .finding .loc { font:12.5px var(--mono); color:var(--muted) }
+  .finding .loc b { color:var(--cyan); font-weight:600 }
+  .code { margin:14px 0; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#060a16 }
+  .code .bar { display:flex; align-items:center; gap:6px; padding:9px 12px; border-bottom:1px solid var(--line); font:11px var(--mono); color:var(--muted) }
+  .code .bar i { width:10px; height:10px; border-radius:50%; background:#ff5f57 } .code .bar i:nth-child(2){background:#febc2e} .code .bar i:nth-child(3){background:#28c840; margin-right:8px}
+  .code pre { margin:0; padding:14px 16px; font:13px/1.6 var(--mono); white-space:pre-wrap; word-break:break-word; color:#ffd1dc }
+  .code pre .ln { color:#4d5878; margin-right:14px; user-select:none }
+  .rr { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px }
+  .rr > div { padding:14px 16px; border-radius:12px; border:1px solid var(--line); background:rgba(0,0,0,.2) }
+  .rr .h { font:700 11px var(--mono); letter-spacing:.14em; margin-bottom:6px }
+  .rr .risk .h { color:var(--high) } .rr .fix .h { color:var(--pass) }
+  .rr .fix { border-color:rgba(52,211,153,.3); background:rgba(52,211,153,.05) }
+  .rr p { margin:0; font-size:14px }
+  .note { color:var(--muted); font-size:13px; margin:12px 0 0 } .note b { color:var(--violet) }
+  .hash { font:11px var(--mono); color:#5f6b8c; word-break:break-all; margin-top:10px }
+  .allclear { text-align:center; padding:44px; font-size:20px; color:var(--pass) }
+
+  /* evidence chain */
+  .chain { position:relative; padding-left:34px }
+  .chain::before { content:""; position:absolute; left:11px; top:6px; bottom:6px; width:2px; background:linear-gradient(180deg,var(--cyan),var(--violet),var(--pink)); box-shadow:0 0 12px var(--cyan) }
+  .link { position:relative; padding:12px 16px; margin-bottom:8px; border-radius:12px; background:var(--glass); border:1px solid var(--line) }
+  .link::before { content:""; position:absolute; left:-29px; top:50%; width:12px; height:12px; margin-top:-6px; border-radius:50%; background:var(--bg); border:2px solid var(--cyan); box-shadow:0 0 10px var(--cyan) }
+  .link code { font:600 13px var(--mono); color:#e2e8f8 }
+  .link .h { font:11.5px var(--mono); color:#6f7ca3; word-break:break-all; margin-top:4px }
+  .seal { margin-top:18px; display:flex; gap:16px; align-items:center; border-color:rgba(167,139,250,.45) }
+  .seal[hidden] { display:none }
+  .seal .lock { width:52px; height:52px; flex:none; border-radius:14px; display:grid; place-items:center; font-size:24px;
+    background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(167,139,250,.3)); box-shadow:0 0 26px rgba(167,139,250,.45) }
+  .seal .d { font:12px var(--mono); color:var(--violet); word-break:break-all }
+  footer { margin-top:56px; color:var(--muted); font-size:12.5px; text-align:center; font-family:var(--mono) }
+  code { font-family:var(--mono) }
+
+  @media (max-width:860px) {
+    header.hero { grid-template-columns:1fr; justify-items:center; text-align:center }
+    .chips, .actions { justify-content:center }
+    .eyebrow { font-size:10px; letter-spacing:.1em; line-height:1.4; text-align:left }
+    .kpi b { font-size:32px } .kpi > span { padding-right:0 } .kpi .ico { display:none }
+    .card { padding:18px }
+    .kpis { grid-template-columns:repeat(2,1fr) }
+    .duo, .rr { grid-template-columns:1fr }
+    .test { grid-template-columns:64px 1fr; } .test .tags, .test .sev { grid-column:2; justify-content:flex-start; justify-self:start }
+  }
+  @media (max-width:420px) { .gauge { width:250px; height:250px } .gauge .num { font-size:60px } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important }
+    .scanline, #net { display:none }
+  }
+  @media print {
+    #boot, #net, .aurora, .grid, .scanline, .actions, .filters { display:none !important }
+    :root { --ink:#111; --muted:#555; --line:#ddd; --glass:#fff; --glass2:#fff }
+    body { background:#fff; color:#111 }
+    h1 { color:#111; -webkit-text-fill-color:#111; background:none }
+    .rv, .cell { opacity:1 !important; transform:none !important }
+    .card, .test, .link { box-shadow:none !important; backdrop-filter:none; break-inside:avoid; background:#fff }
+    .gauge .num { color:#111; text-shadow:none } .summary { color:#111 } .caret { display:none }
+    .code { background:#f6f6f6 } .code pre { color:#9f1239 } .test.NA { opacity:1 } .test.hide { display:grid }
+  }
+</style>
+</head>
+<body>
+<div id="boot" aria-hidden="true">
+  <div class="term">
+    <div class="l"><span class="p">$</span> auditbot scan {{ ev.target.name }}</div>
+    <div class="l">› fingerprinting <b>{{ ev.files_scanned | length }}</b> config files <span class="p">(SHA-256)</span></div>
+    <div class="l">› evaluating <b>{{ ev.control_tests | length }}</b> control tests against IaC</div>
+    <div class="l">› mapping to <span class="p">SOC 2 TSC</span> + <span class="p">ISO/IEC 27001:2022</span></div>
+    <div class="l">{% if ev.summary.findings %}<span class="w">⚠ {{ ev.summary.findings }} finding{{ '' if ev.summary.findings == 1 else 's' }} detected</span>{% else %}<span class="ok">✓ no findings</span>{% endif %}</div>
+    <div class="l"><span class="ok">✓</span> evidence sealed · commit {{ (ev.target.git_commit or "n/a")[:10] }}</div>
+    <div class="bar"><i></i></div>
+    <div class="hint">CLICK TO SKIP</div>
+  </div>
+</div>
+<canvas id="net"></canvas>
+<div class="aurora"><i></i><i></i><i></i></div>
+<div class="grid"></div>
+<div class="scanline"></div>
+
+<main>
+  <header class="hero">
+    <div class="rv">
+      <span class="eyebrow"><span class="dot"></span>EXECUTIVE BRIEF · AUTOMATED AUDIT EVIDENCE</span>
+      <h1>Audit Readiness<br>Report</h1>
+      <div class="chips">
+        <span class="chip">target <b>{{ ev.target.name }}</b></span>
+        <span class="chip">commit <b>{{ (ev.target.git_commit or "n/a")[:10] }}</b></span>
+        <span class="chip">branch <b>{{ ev.target.git_branch or "n/a" }}</b></span>
+        <span class="chip">{{ ev.generated_at }}</span>
+      </div>
+      <div class="frameworks">{{ ev.frameworks | join(" · ") }}</div>
+      <div class="actions">
+        <button class="btn primary" onclick="window.print()">⤓ Save as PDF</button>
+        <button class="btn" onclick="location.reload()">↻ Replay</button>
+      </div>
+    </div>
+    <div class="gauge rv" aria-label="Readiness score {{ s }} percent">
+      <svg viewBox="0 0 300 300">
+        <defs>
+          <linearGradient id="gArc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{{ col2 }}"/><stop offset="1" stop-color="{{ col }}"/></linearGradient>
+        </defs>
+        <g class="orbit"><circle cx="150" cy="150" r="142" fill="none" stroke="rgba(148,163,209,.25)" stroke-width="1" stroke-dasharray="2 8"/></g>
+        <g class="orbit2"><circle cx="150" cy="150" r="132" fill="none" stroke="{{ col }}" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="40 30 4 30"/></g>
+        <g id="ticks"></g>
+        <circle cx="150" cy="150" r="108" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="14"/>
+        <circle class="arc" id="arc" cx="150" cy="150" r="108" fill="none" stroke="url(#gArc)" stroke-width="14" stroke-linecap="round"
+                transform="rotate(-90 150 150)" stroke-dasharray="678.58" stroke-dashoffset="{{ 678.58 * (1 - s / 100) }}"/>
+      </svg>
+      <div class="center"><div>
+        <div class="num"><span data-count="{{ s }}">{{ s }}</span><small>%</small></div>
+        <div class="lbl">READINESS</div>
+        <div class="verdict">{{ verdict }}</div>
+      </div></div>
+    </div>
+  </header>
+
+  <div class="kpis">
+    <div class="card kpi tilt rv good"><div class="ico">✓</div><b><span data-count="{{ ev.summary.tests_passed }}">{{ ev.summary.tests_passed }}</span><span style="color:var(--muted);font-size:24px">/{{ ev.summary.tests_evaluated }}</span></b><span>control tests passing</span></div>
+    <div class="card kpi tilt rv {{ 'bad' if ev.summary.tests_failed else 'good' }}"><div class="ico">✕</div><b data-count="{{ ev.summary.tests_failed }}">{{ ev.summary.tests_failed }}</b><span>control tests failing</span></div>
+    <div class="card kpi tilt rv {{ 'bad' if ev.summary.findings else 'good' }}"><div class="ico">⚑</div><b data-count="{{ ev.summary.findings }}">{{ ev.summary.findings }}</b><span>findings</span></div>
+    <div class="card kpi tilt rv"><div class="ico">#</div><b data-count="{{ ev.files_scanned | length }}">{{ ev.files_scanned | length }}</b><span>files fingerprinted (SHA-256)</span></div>
+  </div>
+  {% if ev.summary.coverage_warning %}<div class="card warn rv"><b>⚠ Limited coverage.</b> {{ ev.summary.coverage_warning }}</div>{% endif %}
+  <p class="method rv">Score = share of applicable control tests passing, weighted by severity (critical 10 · high 5 · medium 2 · low 1). Tests that don't apply to this codebase are excluded.</p>
+
+  <h2 class="rv"><span class="n">01</span> Posture</h2>
+  <div class="duo">
+    <div class="card tilt rv" id="radarCard">
+      <h3>Security domain coverage</h3>
+      <p class="sub">Severity-weighted pass rate per domain (applicable tests only)</p>
+      <svg id="radar" viewBox="-210 -150 420 300"></svg>
+    </div>
+    <div class="card tilt rv">
+      <h3>Weighted score breakdown</h3>
+      <p class="sub">Points earned vs. lost, by severity tier</p>
+      <div id="sevbars"></div>
+      <div class="legend"><span><i style="background:var(--pass)"></i>earned</span><span><i style="background:var(--fail)"></i>lost to findings</span></div>
+    </div>
+  </div>
+
+  <h2 class="rv"><span class="n">02</span> Framework control map</h2>
+  <div class="card heat rv" id="heat">
+    <h4>AICPA SOC 2 · Trust Services Criteria</h4><div class="cells" id="heatSoc"></div>
+    <h4>ISO/IEC 27001:2022 · Annex A</h4><div class="cells" id="heatIso" style="margin-bottom:0"></div>
+  </div>
+
+  <h2 class="rv"><span class="n">03</span> Executive summary</h2>
+  <div class="card rv">
+    <p class="summary" id="summary">{{ ev.executive_summary }}</p>
+    {% if ev.top_risks %}<ul class="risks">{% for r in ev.top_risks %}<li><span class="k">{{ loop.index }}</span>{{ r }}</li>{% endfor %}</ul>{% endif %}
+    <p class="src">narrative: <b>{{ ev.narrative_source }}</b> · control mapping: <b>deterministic catalog</b></p>
+  </div>
+
+  <h2 class="rv"><span class="n">04</span> Control test results</h2>
+  <div class="filters rv" id="filters">
+    <button class="on" data-f="all">ALL · {{ ev.control_tests | length }}</button>
+    <button data-f="FAIL">FAIL · {{ ev.summary.tests_failed }}</button>
+    <button data-f="PASS">PASS · {{ ev.summary.tests_passed }}</button>
+    <button data-f="NA">N/A · {{ ev.control_tests | length - ev.summary.tests_evaluated }}</button>
+  </div>
+  <div class="tests">
+    {% for want in ['FAIL', 'PASS', 'N/A'] %}{% for t in ev.control_tests if t.status == want %}
+    {% set st = 'NA' if t.status == 'N/A' else t.status %}
+    <div class="test rv {{ st }}" data-s="{{ st }}">
+      <span class="pill {{ st }}">{{ t.status }}</span>
+      <div class="t">{{ t.title }}<small>{{ t.id }}{% if t.findings %} → {{ t.findings | join(", ") }}{% endif %}</small></div>
+      <div class="tags">{% for c in t.soc2 %}<span class="tag soc">{{ c }}</span>{% endfor %}{% for c in t.iso27001 %}<span class="tag iso">{{ c }}</span>{% endfor %}</div>
+      <span class="sev {{ t.severity }}">{{ t.severity }}</span>
+    </div>
+    {% endfor %}{% endfor %}
+  </div>
+
+  <h2 class="rv"><span class="n">05</span> Findings &amp; remediation</h2>
+  {% for f in ev.findings %}
+  <div class="card finding tilt rv">
+    <div class="top">
+      <span class="fid">{{ f.id }}</span>
+      <span class="sev {{ f.severity }}">{{ f.severity }}</span>
+      {% for c in f.soc2 %}<span class="tag soc">SOC 2 {{ c }}</span>{% endfor %}
+      {% for c in f.iso27001 %}<span class="tag iso">ISO {{ c }}</span>{% endfor %}
+    </div>
+    <h3>{{ f.title }}</h3>
+    <div class="loc">{% if f.file %}<b>{{ f.file }}:{{ f.line }}</b>{% else %}<b>project-wide</b>{% endif %} — {{ f.detail }}</div>
+    {% if f.file %}<div class="code"><div class="bar"><i></i><i></i><i></i>{{ f.file }}</div><pre><span class="ln">{{ f.line }}</span>{{ f.snippet }}</pre></div>{% endif %}
+    {% if f.risk_explanation or f.remediation %}
+    <div class="rr">
+      {% if f.risk_explanation %}<div class="risk"><div class="h">▲ RISK</div><p>{{ f.risk_explanation }}</p></div>{% endif %}
+      {% if f.remediation %}<div class="fix"><div class="h">✓ REMEDIATION</div><p>{{ f.remediation }}</p></div>{% endif %}
+    </div>
+    {% endif %}
+    {% if f.auditor_note %}<p class="note"><b>Auditor evidence ·</b> {{ f.auditor_note }}</p>{% endif %}
+    {% if f.file_sha256 %}<div class="hash">file sha256 <span class="scr">{{ f.file_sha256 }}</span> · detected {{ f.detected_at }}</div>{% endif %}
+  </div>
+  {% else %}
+  <div class="card allclear rv">✓ No findings — every applicable control test passes.</div>
+  {% endfor %}
+
+  <h2 class="rv"><span class="n">06</span> Evidence chain</h2>
+  <p class="method rv" style="margin-top:-6px">Every file the bot read, with its SHA-256 fingerprint. An auditor can recompute these hashes on commit <code>{{ (ev.target.git_commit or "n/a")[:10] }}</code> to confirm that this exact version was assessed.</p>
+  <div class="chain">
+    {% for f in ev.files_scanned %}<div class="link rv"><code>{{ f.path }}</code><div class="h scr">{{ f.sha256 }}</div></div>{% endfor %}
+  </div>
+  <div class="card seal rv" id="seal" hidden>
+    <div class="lock">🔒</div>
+    <div><div style="font-weight:600">Manifest digest</div>
+      <div class="sub" style="margin:2px 0 6px">SHA-256 of the list above in <code>sha256sum</code> format (<code>&lt;hash&gt;␠␠&lt;path&gt;\n</code> per file)</div>
+      <div class="d scr" id="sealHash"></div></div>
+  </div>
+
+  <footer class="rv">Generated by {{ ev.tool.name }} v{{ ev.tool.version }} · machine-readable evidence: evidence.json</footer>
+</main>
+
+<script id="ev" type="application/json">{{ ev | tojson }}</script>
+<script>
+(function () {
+  "use strict";
+  var EV = JSON.parse(document.getElementById("ev").textContent);
+  var RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var W = { critical: 10, high: 5, medium: 2, low: 1 };
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+
+  /* ---------- gauge ticks ---------- */
+  var ticks = $("#ticks");
+  for (var i = 0; i < 60; i++) {
+    var a = i / 60 * Math.PI * 2, r1 = 120, r2 = i % 5 ? 124 : 127;
+    el("line", { x1: 150 + r1 * Math.sin(a), y1: 150 - r1 * Math.cos(a), x2: 150 + r2 * Math.sin(a), y2: 150 - r2 * Math.cos(a),
+      stroke: i / 60 * 100 < EV.summary.readiness_score ? "{{ col }}" : "rgba(148,163,209,.25)", "stroke-width": i % 5 ? 1 : 2 }, ticks);
+  }
+  var arc = $("#arc"), arcTarget = arc.getAttribute("stroke-dashoffset");
+
+  /* ---------- radar ---------- */
+  var DOM = { SECRET: "Secrets", DEP: "Supply chain", AI: "AI agents", S3: "Storage", NET: "Network", DB: "Databases", IAM: "Identity", LOG: "Logging", APP: "App config", CONTAINER: "Containers", K8S: "Kubernetes", DOCKER: "Docker" };
+  var doms = {};
+  EV.control_tests.forEach(function (t) {
+    if (t.status === "N/A") return;
+    var k = t.id.split("-")[0], d = doms[k] || (doms[k] = { name: DOM[k] || k.charAt(0) + k.slice(1).toLowerCase(), got: 0, tot: 0, fail: 0 });
+    d.tot += W[t.severity] || 1; if (t.status === "PASS") d.got += W[t.severity] || 1; else d.fail++;
+  });
+  var dl = Object.keys(doms).map(function (k) { return doms[k]; });
+  var radar = $("#radar"), R = 98, radarPoly, radarDots = [];
+  if (dl.length < 3) { $("#radarCard").style.display = "none"; }
+  else {
+    var n = dl.length, pt = function (j, v) { var a = j / n * Math.PI * 2; return [v * R * Math.sin(a), -v * R * Math.cos(a)]; };
+    [0.25, 0.5, 0.75, 1].forEach(function (lv) {
+      el("polygon", { points: dl.map(function (_, j) { return pt(j, lv).join(","); }).join(" "), fill: lv === 1 ? "rgba(34,211,238,.03)" : "none", stroke: "rgba(148,163,209,.18)", "stroke-width": 1 }, radar);
+    });
+    dl.forEach(function (d, j) {
+      var p = pt(j, 1), q = pt(j, 1.2);
+      el("line", { x1: 0, y1: 0, x2: p[0], y2: p[1], stroke: "rgba(148,163,209,.15)" }, radar);
+      var tx = el("text", { x: q[0], y: q[1] + 4, "text-anchor": Math.abs(q[0]) < 8 ? "middle" : q[0] > 0 ? "start" : "end" }, radar);
+      tx.textContent = d.name; if (d.fail) tx.style.fill = "#fb7185";
+    });
+    var grad = el("radialGradient", { id: "rg" }, el("defs", {}, radar));
+    el("stop", { offset: "0", "stop-color": "#22d3ee", "stop-opacity": ".15" }, grad);
+    el("stop", { offset: "1", "stop-color": "#a78bfa", "stop-opacity": ".45" }, grad);
+    radarPoly = el("polygon", { points: dl.map(function () { return "0,0"; }).join(" "), fill: "url(#rg)", stroke: "#22d3ee", "stroke-width": 2, style: "filter:drop-shadow(0 0 8px #22d3ee)" }, radar);
+    dl.forEach(function (d) {
+      var c = el("circle", { cx: 0, cy: 0, r: 4.5, fill: d.fail ? "#f43f5e" : "#34d399", style: "filter:drop-shadow(0 0 6px " + (d.fail ? "#f43f5e" : "#34d399") + ")" }, radar);
+      var ti = el("title", {}, c); ti.textContent = d.name + ": " + Math.round(d.got / d.tot * 100) + "%";
+      radarDots.push(c);
+    });
+  }
+  function drawRadar(k) {
+    if (!radarPoly) return;
+    var n = dl.length, pts = dl.map(function (d, j) { var v = Math.max(.04, d.got / d.tot) * k, a = j / n * Math.PI * 2; return [v * R * Math.sin(a), -v * R * Math.cos(a)]; });
+    radarPoly.setAttribute("points", pts.map(function (p) { return p.join(","); }).join(" "));
+    pts.forEach(function (p, j) { radarDots[j].setAttribute("cx", p[0]); radarDots[j].setAttribute("cy", p[1]); });
+  }
+
+  /* ---------- severity bars ---------- */
+  var sb = $("#sevbars"), totalPts = 0, sevs = ["critical", "high", "medium", "low"].map(function (s) {
+    var ts = EV.control_tests.filter(function (t) { return t.severity === s && t.status !== "N/A"; });
+    var p = ts.filter(function (t) { return t.status === "PASS"; }).length;
+    totalPts += ts.length * W[s];
+    return { s: s, p: p * W[s], f: (ts.length - p) * W[s] };
+  });
+  sevs.forEach(function (x) {
+    var row = document.createElement("div"); row.className = "sevrow";
+    row.innerHTML = '<span class="name" style="color:var(--' + { critical: "crit", high: "high", medium: "med", low: "low" }[x.s] + ')">' + x.s + '</span><div class="track"><i class="p"></i><i class="f"></i></div><span class="pts">' + x.p + " / " + (x.p + x.f) + "</span>";
+    row.dataset.p = totalPts ? x.p / totalPts * 100 : 0; row.dataset.f = totalPts ? x.f / totalPts * 100 : 0;
+    sb.appendChild(row);
+  });
+  function fillBars() { $$(".sevrow").forEach(function (r) { $("i.p", r).style.width = r.dataset.p + "%"; $("i.f", r).style.width = r.dataset.f + "%"; }); }
+
+  /* ---------- heatmap ---------- */
+  function heat(key, host) {
+    var m = {};
+    EV.control_tests.forEach(function (t) {
+      t[key].forEach(function (c) {
+        var e = m[c] || (m[c] = { st: "NA", tests: [] }); e.tests.push(t.status + "  " + t.title);
+        if (t.status === "FAIL") e.st = "FAIL"; else if (t.status === "PASS" && e.st !== "FAIL") e.st = "PASS";
+      });
+    });
+    Object.keys(m).sort(function (a, b) { return a.localeCompare(b, undefined, { numeric: true }); }).forEach(function (c) {
+      var d = document.createElement("span"); d.className = "cell " + m[c].st; d.textContent = c;
+      d.setAttribute("data-tip", m[c].tests.join("\n")); host.appendChild(d);
+    });
+  }
+  heat("soc2", $("#heatSoc")); heat("iso27001", $("#heatIso"));
+  function popCells() { $$(".cell").forEach(function (c, j) { setTimeout(function () { c.classList.add("in"); }, RM ? 0 : j * 45); }); }
+
+  /* ---------- count-up ---------- */
+  function countUp(e) {
+    var to = +e.getAttribute("data-count"), t0 = performance.now(), dur = 1600;
+    if (RM || !to) { e.textContent = to; return; }
+    (function f(t) { var k = Math.min(1, (t - t0) / dur); e.textContent = Math.round(to * (1 - Math.pow(1 - k, 4))); if (k < 1) requestAnimationFrame(f); })(t0);
+  }
+
+  /* ---------- typing ---------- */
+  var sum = $("#summary"), sumText = sum.textContent.trim(), typed = false;
+  function typeSummary() {
+    if (typed || RM || !sumText) return; typed = true;
+    sum.textContent = ""; var caret = document.createElement("span"); caret.className = "caret";
+    var txt = document.createTextNode(""); sum.appendChild(txt); sum.appendChild(caret);
+    var i = 0, step = Math.max(1, Math.round(sumText.length / 220));
+    (function f() { i = Math.min(sumText.length, i + step); txt.nodeValue = sumText.slice(0, i); if (i < sumText.length) setTimeout(f, 14); else setTimeout(function () { caret.remove(); }, 1800); })();
+  }
+  window.addEventListener("beforeprint", function () { sum.textContent = sumText; $$(".scr").forEach(function (e) { if (e.dataset.v) e.textContent = e.dataset.v; }); });
+
+  /* ---------- hash scramble ---------- */
+  var HEX = "0123456789abcdef";
+  function scramble(e) {
+    var v = e.dataset.v || (e.dataset.v = e.textContent.trim()); if (RM || !v) return;
+    var t0 = performance.now(), dur = 900;
+    (function f(t) {
+      var k = (t - t0) / dur, fixed = Math.floor(v.length * Math.min(1, k)), s = v.slice(0, fixed);
+      for (var j = fixed; j < v.length; j++) s += HEX[(Math.random() * 16) | 0];
+      e.textContent = s; if (k < 1) requestAnimationFrame(f); else e.textContent = v;
+    })(t0);
+  }
+
+  /* ---------- manifest digest ---------- */
+  try {
+    if (window.crypto && crypto.subtle && EV.files_scanned.length) {
+      var manifest = EV.files_scanned.map(function (f) { return f.sha256 + "  " + f.path + "\n"; }).join("");
+      crypto.subtle.digest("SHA-256", new TextEncoder().encode(manifest)).then(function (buf) {
+        $("#sealHash").textContent = Array.prototype.map.call(new Uint8Array(buf), function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
+        $("#seal").hidden = false;
+      }).catch(function () {});
+    }
+  } catch (e) {}
+
+  /* ---------- reveal orchestration ---------- */
+  var started = false, io;
+  function onReveal(t) {
+    t.classList.add("in");
+    $$("[data-count]", t).forEach(countUp);
+    $$(".scr", t).forEach(scramble);
+    if (t.id === "heat") popCells();
+    if (t.contains(sum)) setTimeout(typeSummary, 300);
+    if (t.contains(sb)) setTimeout(fillBars, 200);
+    if (t.id === "radarCard" && radarPoly) {
+      var t0 = performance.now();
+      (function f(tt) { var k = Math.min(1, (tt - t0) / 1400); drawRadar(RM ? 1 : 1 - Math.pow(1 - k, 3)); if (k < 1) requestAnimationFrame(f); })(t0);
+    }
+  }
+  function start() {
+    if (started) return; started = true;
+    arc.style.strokeDashoffset = 678.58; arc.getBoundingClientRect();
+    setTimeout(function () { arc.style.strokeDashoffset = arcTarget; }, 60);
+    if (!("IntersectionObserver" in window)) { $$(".rv").forEach(onReveal); return; }
+    var stagger = 0, last = 0;
+    io =new IntersectionObserver(function (es) {
+      es.forEach(function (en) {
+        if (!en.isIntersecting) return; io.unobserve(en.target);
+        var now = performance.now(); stagger = now - last < 120 ? stagger + 70 : 0; last = now;
+        setTimeout(function () { onReveal(en.target); }, RM ? 0 : stagger);
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+    $$(".rv").forEach(function (e) { io.observe(e); });
+  }
+  // prepare: hide count-up targets at 0 before reveal, remember hash values
+  $$("[data-count]").forEach(function (e) { e.textContent = "0"; });
+  $$(".scr").forEach(function (e) { e.dataset.v = e.textContent.trim(); });
+  arc.style.strokeDashoffset = 678.58;
+  drawRadar(0);
+
+  /* ---------- boot sequence ---------- */
+  var boot = $("#boot");
+  function endBoot() { if (boot.classList.contains("done")) return; boot.classList.add("done"); setTimeout(start, 250); }
+  if (RM) { boot.classList.add("done"); start(); }
+  else {
+    boot.addEventListener("click", endBoot);
+    var lines = $$(".l", boot);
+    lines.forEach(function (l, j) { setTimeout(function () { l.classList.add("on"); }, 120 + j * 300); });
+    setTimeout(function () { $(".bar i", boot).style.width = "100%"; }, 80);
+    setTimeout(endBoot, 120 + lines.length * 300 + 500);
+  }
+
+  /* ---------- filters ---------- */
+  $$("#filters button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      $$("#filters button").forEach(function (x) { x.classList.toggle("on", x === b); });
+      $$(".test").forEach(function (t) { t.classList.toggle("hide", b.dataset.f !== "all" && t.dataset.s !== b.dataset.f); });
+    });
+  });
+
+  /* ---------- tilt + spotlight ---------- */
+  if (!RM && window.matchMedia("(hover: hover)").matches) {
+    $$(".card").forEach(function (c) {
+      c.addEventListener("mousemove", function (e) {
+        var r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+        c.style.setProperty("--mx", x * 100 + "%"); c.style.setProperty("--my", y * 100 + "%");
+        if (c.classList.contains("tilt") && c.classList.contains("in")) c.style.transform = "perspective(900px) rotateX(" + ((.5 - y) * 5) + "deg) rotateY(" + ((x - .5) * 6) + "deg)";
+      });
+      c.addEventListener("mouseleave", function () { if (c.classList.contains("tilt")) c.style.transform = ""; });
+    });
+  }
+
+  /* ---------- particle network ---------- */
+  var cv = $("#net"), ctx = cv.getContext && cv.getContext("2d");
+  if (ctx && !RM) {
+    var P = [], dpr = Math.min(2, window.devicePixelRatio || 1), mouse = { x: -1e4, y: -1e4 };
+    function size() {
+      cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; cv.style.width = innerWidth + "px"; cv.style.height = innerHeight + "px";
+      var target = Math.min(90, Math.round(innerWidth * innerHeight / 16000));
+      while (P.length < target) P.push({ x: Math.random() * innerWidth, y: Math.random() * innerHeight, vx: (Math.random() - .5) * .3, vy: (Math.random() - .5) * .3, hot: Math.random() < .12 });
+      P.length = target;
+    }
+    size(); addEventListener("resize", size);
+    addEventListener("mousemove", function (e) { mouse.x = e.clientX; mouse.y = e.clientY; });
+    (function frame() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, innerWidth, innerHeight);
+      for (var i = 0; i < P.length; i++) {
+        var p = P[i]; p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > innerWidth) p.vx *= -1; if (p.y < 0 || p.y > innerHeight) p.vy *= -1;
+        var dxm = p.x - mouse.x, dym = p.y - mouse.y, dm = dxm * dxm + dym * dym;
+        if (dm < 14000) { p.x += dxm / 80; p.y += dym / 80; }
+        for (var j = i + 1; j < P.length; j++) {
+          var q = P[j], dx = p.x - q.x, dy = p.y - q.y, d = dx * dx + dy * dy;
+          if (d < 17000) { ctx.strokeStyle = "rgba(103,232,249," + (1 - d / 17000) * .22 + ")"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
+        }
+        ctx.fillStyle = p.hot ? "{{ col }}" : "rgba(165,180,252,.75)";
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.hot ? 2.2 : 1.4, 0, 6.283); ctx.fill();
+      }
+      requestAnimationFrame(frame);
+    })();
+  }
+})();
+</script>
+</body>
+</html>

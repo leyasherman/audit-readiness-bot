@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audit-readiness-bot"
+version = "0.1.0"
+description = "Scans IaC/config, maps findings to SOC 2 + ISO 27001:2022 controls, outputs audit evidence, and gates commits."
+requires-python = ">=3.10"
+dependencies = ["anthropic>=2.4", "rich>=13", "pyyaml>=6", "jinja2>=3"]
+
+[project.scripts]
+audit-bot = "auditbot.__main__:main"
+
+[tool.setuptools]
+packages = ["auditbot"]
+
+[tool.setuptools.package-data]
+auditbot = ["controls.yaml", "templates/*"]

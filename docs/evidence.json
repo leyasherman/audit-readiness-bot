@@ -1,0 +1,331 @@
+{
+  "schema": "auditbot.evidence/v1",
+  "generated_at": "2026-11-25T19:02:40+00:00",
+  "tool": {
+    "name": "audit-readiness-bot",
+    "version": "0.1.0"
+  },
+  "target": {
+    "path": "demo-target",
+    "name": "demo-target",
+    "git_commit": "8d84680d1833e3322075bc8776f45759f00f03bf",
+    "git_branch": "main"
+  },
+  "frameworks": [
+    "AICPA SOC 2 TSC (2017, rev. 2022)",
+    "ISO/IEC 27001:2022 Annex A"
+  ],
+  "summary": {
+    "readiness_score": 78,
+    "score_method": "severity-weighted share of passing control tests (critical 10, high 5, medium 2, low 1)",
+    "coverage_warning": null,
+    "tests_evaluated": 11,
+    "tests_passed": 8,
+    "tests_failed": 3,
+    "findings": 3
+  },
+  "control_tests": [
+    {
+      "id": "SECRET-HARDCODED",
+      "title": "No hardcoded credentials in source or config",
+      "severity": "critical",
+      "soc2": [
+        "CC6.1"
+      ],
+      "iso27001": [
+        "A.5.17",
+        "A.8.24"
+      ],
+      "count": 0,
+      "status": "PASS",
+      "findings": []
+    },
+    {
+      "id": "DEP-TYPOSQUAT",
+      "title": "Dependencies are the intended packages (no typosquats or AI-hallucinated names)",
+      "severity": "critical",
+      "soc2": [
+        "CC7.1",
+        "CC8.1",
+        "CC9.2"
+      ],
+      "iso27001": [
+        "A.5.21",
+        "A.8.28"
+      ],
+      "count": 0,
+      "status": "N/A",
+      "findings": []
+    },
+    {
+      "id": "AI-AGENT-CONTEXT",
+      "title": "AI agent context free of hidden or injected instructions",
+      "severity": "high",
+      "soc2": [
+        "CC7.1",
+        "CC8.1"
+      ],
+      "iso27001": [
+        "A.8.25",
+        "A.8.28"
+      ],
+      "count": 0,
+      "status": "N/A",
+      "findings": []
+    },
+    {
+      "id": "S3-ENCRYPTION",
+      "title": "Object storage encrypted at rest",
+      "severity": "high",
+      "soc2": [
+        "CC6.1",
+        "CC6.7"
+      ],
+      "iso27001": [
+        "A.8.24"
+      ],
+      "count": 0,
+      "status": "PASS",
+      "findings": []
+    },
+    {
+      "id": "S3-PUBLIC",
+      "title": "Object storage not publicly accessible",
+      "severity": "critical",
+      "soc2": [
+        "CC6.1",
+        "CC6.6"
+      ],
+      "iso27001": [
+        "A.8.3",
+        "A.5.15"
+      ],
+      "count": 0,
+      "status": "PASS",
+      "findings": []
+    },
+    {
+      "id": "NET-OPEN-ADMIN",
+      "title": "Admin ports (SSH/RDP) not exposed to the internet",
+      "severity": "critical",
+      "soc2": [
+        "CC6.6"
+      ],
+      "iso27001": [
+        "A.8.20",
+        "A.8.22"
+      ],
+      "count": 0,
+      "status": "PASS",
+      "findings": []
+    },
+    {
+      "id": "DB-ENCRYPTION",
+      "title": "Databases encrypted at rest",
+      "severity": "high",
+      "soc2": [
+        "CC6.1",
+        "CC6.7"
+      ],
+      "iso27001": [
+        "A.8.24"
+      ],
+      "count": 0,
+      "status": "PASS",
+      "findings": []
+    },
+    {
+      "id": "DB-PUBLIC",
+      "title": "Databases not publicly reachable",
+      "severity": "critical",
+      "soc2": [
+        "CC6.6"
+      ],
+      "iso27001": [
+        "A.8.20"
+      ],
+      "count": 0,
+      "status": "PASS",
+      "findings": []
+    },
+    {
+      "id": "IAM-WILDCARD",
+      "title": "Least-privilege IAM (no wildcard actions)",
+      "severity": "high",
+      "soc2": [
+        "CC6.3"
+      ],
+      "iso27001": [
+        "A.5.15",
+        "A.8.2"
+      ],
+      "count": 1,
+      "status": "FAIL",
+      "findings": [
+        "F-003"
+      ]
+    },
+    {
+      "id": "IAM-MFA",
+      "title": "MFA enforced for human IAM access",
+      "severity": "high",
+      "soc2": [
+        "CC6.1"
+      ],
+      "iso27001": [
+        "A.8.5"
+      ],
+      "count": 1,
+      "status": "FAIL",
+      "findings": [
+        "F-002"
+      ]
+    },
+    {
+      "id": "LOG-AUDIT-TRAIL",
+      "title": "Audit logging enabled (CloudTrail)",
+      "severity": "high",
+      "soc2": [
+        "CC7.2",
+        "CC7.3"
+      ],
+      "iso27001": [
+        "A.8.15",
+        "A.8.16"
+      ],
+      "count": 1,
+      "status": "FAIL",
+      "findings": [
+        "F-001"
+      ]
+    },
+    {
+      "id": "APP-INSECURE-CONFIG",
+      "title": "Secure application code and configuration (debug, CORS, injection, XSS, TLS)",
+      "severity": "medium",
+      "soc2": [
+        "CC6.6",
+        "CC8.1"
+      ],
+      "iso27001": [
+        "A.8.9",
+        "A.8.25",
+        "A.8.28"
+      ],
+      "count": 0,
+      "status": "PASS",
+      "findings": []
+    },
+    {
+      "id": "CONTAINER-HARDENING",
+      "title": "Hardened container configuration",
+      "severity": "medium",
+      "soc2": [
+        "CC6.8"
+      ],
+      "iso27001": [
+        "A.8.9"
+      ],
+      "count": 0,
+      "status": "PASS",
+      "findings": []
+    }
+  ],
+  "findings": [
+    {
+      "rule": "LOG-AUDIT-TRAIL",
+      "file": null,
+      "line": null,
+      "snippet": "(project-wide)",
+      "detail": "No aws_cloudtrail resource defined in infrastructure",
+      "id": "F-001",
+      "severity": "high",
+      "title": "Audit logging enabled (CloudTrail)",
+      "soc2": [
+        "CC7.2",
+        "CC7.3"
+      ],
+      "iso27001": [
+        "A.8.15",
+        "A.8.16"
+      ],
+      "file_sha256": null,
+      "detected_at": "2026-11-25T19:02:40+00:00",
+      "risk_explanation": "Without an audit trail, security incidents cannot be detected or investigated, which auditors flag immediately.",
+      "remediation": "Add an aws_cloudtrail resource (multi-region, log file validation on) writing to an encrypted bucket.",
+      "auditor_note": "Provide the fixed configuration and the passing scan output as evidence."
+    },
+    {
+      "rule": "IAM-MFA",
+      "file": "infra/main.tf",
+      "line": 63,
+      "snippet": "resource \"aws_iam_user\" \"deploy\" {",
+      "detail": "No IAM policy enforces aws:MultiFactorAuthPresent",
+      "id": "F-002",
+      "severity": "high",
+      "title": "MFA enforced for human IAM access",
+      "soc2": [
+        "CC6.1"
+      ],
+      "iso27001": [
+        "A.8.5"
+      ],
+      "file_sha256": "2154c41a22695053640300c5a57f88ac9a64cad633746db2ebc01bf0ad580a4d",
+      "detected_at": "2026-11-25T19:02:40+00:00",
+      "risk_explanation": "Without MFA, a single stolen password gives full access to the cloud account.",
+      "remediation": "Attach a policy that denies actions when aws:MultiFactorAuthPresent is false, or enforce MFA via SSO.",
+      "auditor_note": "Provide the fixed configuration and the passing scan output as evidence."
+    },
+    {
+      "rule": "IAM-WILDCARD",
+      "file": "infra/main.tf",
+      "line": 73,
+      "snippet": "Action   = \"*\"",
+      "detail": "IAM policy allows all actions (*)",
+      "id": "F-003",
+      "severity": "high",
+      "title": "Least-privilege IAM (no wildcard actions)",
+      "soc2": [
+        "CC6.3"
+      ],
+      "iso27001": [
+        "A.5.15",
+        "A.8.2"
+      ],
+      "file_sha256": "2154c41a22695053640300c5a57f88ac9a64cad633746db2ebc01bf0ad580a4d",
+      "detected_at": "2026-11-25T19:02:40+00:00",
+      "risk_explanation": "Wildcard IAM actions grant full admin rights and break least privilege.",
+      "remediation": "Replace \"*\" with the specific actions the workload needs, scoped to specific resources.",
+      "auditor_note": "Provide the fixed configuration and the passing scan output as evidence."
+    }
+  ],
+  "executive_summary": "Automated assessment shows 78% audit readiness across the evaluated SOC 2 / ISO 27001 control tests. 3 issue(s) need remediation before an audit; the most urgent is: audit logging enabled (cloudtrail).",
+  "top_risks": [
+    "Audit logging enabled (CloudTrail) (CC7.2, CC7.3)",
+    "MFA enforced for human IAM access (CC6.1)",
+    "Least-privilege IAM (no wildcard actions) (CC6.3)"
+  ],
+  "narrative_source": "offline-catalog",
+  "files_scanned": [
+    {
+      "path": ".env.example",
+      "sha256": "a2d3676520d208065e88e5d1cb8b35a46510b20e5fbc7e77335014618188824f"
+    },
+    {
+      "path": ".github/workflows/compliance-gate.yml",
+      "sha256": "2e981028ebb16b2de441bdd036443664ef42ab9f66cc67cc200a1ebb64c1ed71"
+    },
+    {
+      "path": "app/settings.py",
+      "sha256": "26d3d71be8f5f9cffd0f21c6e8f75883d6ce0bbca722f463b53110eb3c1a5aff"
+    },
+    {
+      "path": "docker-compose.yml",
+      "sha256": "9a360b0aef9d04053ac07927ccbe1e0789789c082aae89653bf8d5690dc3635c"
+    },
+    {
+      "path": "infra/main.tf",
+      "sha256": "2154c41a22695053640300c5a57f88ac9a64cad633746db2ebc01bf0ad580a4d"
+    }
+  ]
+}

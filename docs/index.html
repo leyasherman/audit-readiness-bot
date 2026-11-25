@@ -1,0 +1,1974 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditus Readiness Report</title>
+
+
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#05070f; --bg2:#0a0f1f; --glass:rgba(255,255,255,.045); --glass2:rgba(255,255,255,.08);
+    --ink:#e8ecf8; --muted:#8a93ad; --line:rgba(148,163,209,.16);
+    --cyan:#22d3ee; --violet:#a78bfa; --pink:#f472b6;
+    --pass:#34d399; --fail:#f43f5e; --crit:#ff2e63; --high:#fb7185; --med:#fbbf24; --low:#94a3b8;
+    --accent:#fbbf24; --accent2:#fb923c;
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing:border-box }
+  html { scroll-behavior:smooth }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 var(--sans); overflow-x:hidden; min-height:100vh }
+  ::selection { background:var(--cyan); color:#000 }
+
+  /* ---------- background layers ---------- */
+  #net { position:fixed; inset:0; z-index:0; pointer-events:none }
+  .aurora { position:fixed; inset:-20%; z-index:0; pointer-events:none; filter:blur(90px); opacity:.55 }
+  .aurora i { position:absolute; border-radius:50%; mix-blend-mode:screen; animation:drift 22s ease-in-out infinite alternate }
+  .aurora i:nth-child(1) { width:48vw; height:48vw; left:5%; top:0; background:radial-gradient(circle,#4f46e5 0,transparent 65%) }
+  .aurora i:nth-child(2) { width:42vw; height:42vw; right:0; top:10%; background:radial-gradient(circle,#0891b2 0,transparent 65%); animation-duration:28s; animation-delay:-6s }
+  .aurora i:nth-child(3) { width:38vw; height:38vw; left:30%; bottom:-5%; background:radial-gradient(circle,#fbbf24 0,transparent 65%); opacity:.45; animation-duration:32s; animation-delay:-12s }
+  @keyframes drift { 0%{transform:translate(0,0) scale(1)} 50%{transform:translate(6vw,4vh) scale(1.15)} 100%{transform:translate(-4vw,8vh) scale(.95)} }
+  .grid { position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:56px 56px; opacity:.35;
+    mask-image:radial-gradient(ellipse at 50% 0%,#000 0,transparent 75%); -webkit-mask-image:radial-gradient(ellipse at 50% 0%,#000 0,transparent 75%) }
+  .scanline { position:fixed; left:0; right:0; height:140px; z-index:1; pointer-events:none; top:-140px;
+    background:linear-gradient(180deg,transparent,rgba(34,211,238,.07) 70%,rgba(34,211,238,.35) 99%,transparent);
+    animation:sweep 7s cubic-bezier(.5,0,.5,1) infinite }
+  @keyframes sweep { 0%{transform:translateY(0)} 60%,100%{transform:translateY(calc(100vh + 140px))} }
+
+  main { position:relative; z-index:2; max-width:1120px; margin:0 auto; padding:48px 16px 80px }
+
+  /* ---------- boot overlay ---------- */
+  #boot { position:fixed; inset:0; z-index:50; background:radial-gradient(ellipse at center,#0b1226 0,#03050b 70%);
+    display:grid; place-items:center; transition:opacity .6s ease, visibility .6s; cursor:pointer }
+  #boot.done { opacity:0; visibility:hidden }
+  #boot .term { width:min(640px,calc(100vw - 32px)); font:13px/1.9 var(--mono); color:#9fb3d9 }
+  #boot .term .l { opacity:0; transform:translateX(-6px); transition:all .25s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  #boot .term .l.on { opacity:1; transform:none }
+  #boot .ok { color:var(--pass) } #boot .p { color:var(--cyan) } #boot .w { color:var(--med) }
+  #boot .bar { height:3px; background:var(--glass2); border-radius:3px; margin-top:18px; overflow:hidden }
+  #boot .bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink)); box-shadow:0 0 18px var(--cyan); transition:width 2s cubic-bezier(.6,0,.2,1) }
+  #boot .hint { margin-top:14px; font-size:11px; color:#4d5878; letter-spacing:.12em }
+
+  /* ---------- reveal ---------- */
+  .rv { opacity:0; transform:translateY(26px); transition:opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1) }
+  .rv.in { opacity:1; transform:none }
+
+  /* ---------- hero ---------- */
+  header.hero { display:grid; grid-template-columns:1fr auto; gap:40px; align-items:center }
+  .eyebrow { display:inline-flex; align-items:center; gap:10px; font:600 11px/1 var(--mono); letter-spacing:.18em; color:var(--cyan);
+    padding:8px 12px; border:1px solid rgba(34,211,238,.35); border-radius:99px; background:rgba(34,211,238,.06) }
+  .eyebrow .dot { width:7px; height:7px; border-radius:50%; background:var(--cyan); box-shadow:0 0 10px var(--cyan); animation:blink 1.6s infinite }
+  @keyframes blink { 50%{opacity:.25} }
+  h1 { font-size:clamp(34px,6vw,64px); line-height:1.02; margin:18px 0 14px; letter-spacing:-.035em; font-weight:700;
+    background:linear-gradient(100deg,#fff 0%,#c7d2fe 30%,var(--cyan) 55%,var(--violet) 75%,#fff 100%); background-size:250% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent; animation:shine 8s linear infinite }
+  @keyframes shine { to { background-position:-250% 0 } }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 }
+  .chip { font:12px/1 var(--mono); color:#c3cbe3; padding:7px 10px; border-radius:8px; background:var(--glass); border:1px solid var(--line) }
+  .chip b { color:var(--cyan); font-weight:600 }
+  .frameworks { color:var(--muted); font-size:13px }
+  .actions { display:flex; gap:10px; margin-top:22px; flex-wrap:wrap }
+  .btn { font:600 13px/1 var(--sans); color:var(--ink); padding:11px 16px; border-radius:10px; cursor:pointer; border:1px solid var(--line);
+    background:var(--glass); backdrop-filter:blur(10px); transition:all .2s; position:relative; overflow:hidden }
+  .btn:hover { border-color:var(--cyan); box-shadow:0 0 0 1px var(--cyan),0 0 24px rgba(34,211,238,.35); transform:translateY(-1px) }
+  .btn.primary { background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(167,139,250,.25)); border-color:rgba(167,139,250,.5) }
+
+  /* score ring */
+  .gauge { position:relative; width:300px; height:300px; flex:none }
+  .gauge svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible }
+  .gauge .orbit { animation:spin 30s linear infinite; transform-origin:150px 150px }
+  .gauge .orbit2 { animation:spin 18s linear infinite reverse; transform-origin:150px 150px }
+  @keyframes spin { to { transform:rotate(360deg) } }
+  .gauge .arc { filter:drop-shadow(0 0 10px var(--accent)) drop-shadow(0 0 28px var(--accent)); transition:stroke-dashoffset 2.2s cubic-bezier(.2,.8,.2,1) }
+  .gauge .center { position:absolute; inset:0; display:grid; place-items:center; text-align:center }
+  .gauge .num { font:700 76px/1 var(--sans); letter-spacing:-.04em; color:#fff; text-shadow:0 0 30px var(--accent) }
+  .gauge .num small { font-size:30px; color:var(--accent) }
+  .gauge .lbl { font:600 11px/1 var(--mono); letter-spacing:.22em; color:var(--muted); margin-top:8px }
+  .verdict { display:inline-block; margin-top:12px; font:700 11px/1 var(--mono); letter-spacing:.16em; padding:7px 11px; border-radius:99px;
+    color:var(--accent); border:1px solid var(--accent); background:color-mix(in srgb,var(--accent) 12%,transparent);
+    box-shadow:0 0 18px color-mix(in srgb,var(--accent) 45%,transparent); animation:pulse 2.4s ease-in-out infinite }
+  @keyframes pulse { 50% { box-shadow:0 0 4px color-mix(in srgb,var(--accent) 30%,transparent) } }
+
+  /* ---------- cards ---------- */
+  .card { position:relative; background:linear-gradient(180deg,var(--glass2),var(--glass)); border:1px solid var(--line); border-radius:18px;
+    padding:22px 24px; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); overflow:hidden;
+    box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 20px 50px -20px rgba(0,0,0,.6) }
+  .card::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .3s;
+    background:radial-gradient(400px circle at var(--mx,50%) var(--my,50%),rgba(34,211,238,.14),transparent 45%) }
+  .card:hover::before { opacity:1 }
+  .tilt { transition:transform .25s ease, border-color .25s; transform-style:preserve-3d; will-change:transform }
+  .tilt.in { transition:transform .25s ease, border-color .25s, opacity .8s }
+  .tilt:hover { border-color:rgba(34,211,238,.35) }
+
+  h2 { display:flex; align-items:center; gap:12px; font:600 12px/1 var(--mono); text-transform:uppercase; letter-spacing:.2em; color:var(--muted); margin:64px 0 18px }
+  h2::before { content:""; width:28px; height:2px; background:linear-gradient(90deg,var(--cyan),var(--violet)); box-shadow:0 0 10px var(--cyan) }
+  h2 .n { color:var(--cyan) }
+
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:44px }
+  .kpi b { display:block; font:700 40px/1.1 var(--sans); letter-spacing:-.03em }
+  .kpi > span { color:var(--muted); font-size:13px; display:block; padding-right:40px }
+  header.hero > *, .kpis > *, .duo > *, .test > * { min-width:0 }
+  .kpi .ico { position:absolute; right:18px; top:18px; width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+    background:var(--glass2); border:1px solid var(--line); font-size:16px }
+  .kpi.bad b { color:var(--fail); text-shadow:0 0 22px rgba(244,63,94,.6) }
+  .kpi.good b { color:var(--pass); text-shadow:0 0 22px rgba(52,211,153,.45) }
+  .warn { margin-top:14px; border-color:rgba(251,191,36,.5) } .warn b { color:var(--med) }
+  .method { color:var(--muted); font-size:12.5px; margin-top:14px }
+
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:14px }
+  .card h3 { margin:0 0 4px; font-size:16px; font-weight:600 }
+  .sub { color:var(--muted); font-size:12.5px; margin:0 0 10px }
+  #radar { width:100%; max-width:420px; display:block; margin:0 auto; overflow:visible }
+  #radar text { font:600 11px var(--mono); fill:#aab4d0 }
+  .sevrow { display:grid; grid-template-columns:86px 1fr 70px; gap:12px; align-items:center; margin:16px 0 }
+  .sevrow .name { font:600 11px var(--mono); text-transform:uppercase; letter-spacing:.1em }
+  .track { height:12px; border-radius:99px; background:rgba(255,255,255,.06); overflow:hidden; display:flex; position:relative }
+  .track i { display:block; height:100%; width:0; transition:width 1.6s cubic-bezier(.2,.8,.2,1) }
+  .track i.p { background:linear-gradient(90deg,#059669,var(--pass)); box-shadow:0 0 14px var(--pass) }
+  .track i.f { background:repeating-linear-gradient(45deg,var(--fail) 0 6px,#be123c 6px 12px); box-shadow:0 0 14px var(--fail); animation:stripes 1s linear infinite; background-size:17px 17px }
+  @keyframes stripes { to { background-position:17px 0 } }
+  .sevrow .pts { font:12px var(--mono); color:var(--muted); text-align:right }
+  .legend { display:flex; gap:16px; font-size:12px; color:var(--muted); margin-top:6px }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px }
+
+  /* heatmap */
+  .heat h4 { font:600 11px var(--mono); letter-spacing:.14em; color:var(--muted); margin:6px 0 10px; text-transform:uppercase }
+  .cells { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px }
+  .cell { font:600 12px/1 var(--mono); padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--glass);
+    opacity:0; transform:scale(.6); transition:opacity .4s, transform .5s cubic-bezier(.3,1.6,.5,1); cursor:default; position:relative }
+  .cell.in { opacity:1; transform:none }
+  .cell.PASS { color:var(--pass); border-color:rgba(52,211,153,.4); background:rgba(52,211,153,.08) }
+  .cell.FAIL { color:#fff; border-color:var(--fail); background:rgba(244,63,94,.22); box-shadow:0 0 18px rgba(244,63,94,.45); animation:alarm 1.8s ease-in-out infinite }
+  @keyframes alarm { 50% { box-shadow:0 0 4px rgba(244,63,94,.2) } }
+  .cell.NA { color:var(--muted) }
+  .cell[data-tip]:hover::after { content:attr(data-tip); position:absolute; left:0; top:calc(100% + 8px); z-index:5; width:max-content; max-width:280px;
+    font:500 12px/1.4 var(--sans); color:var(--ink); background:#0d1428; border:1px solid var(--line); padding:8px 10px; border-radius:8px; white-space:pre-line }
+
+  /* summary */
+  .summary { font-size:clamp(17px,2vw,21px); line-height:1.55; margin:0; color:#f2f4fb; min-height:3em }
+  .caret { display:inline-block; width:9px; height:1.1em; background:var(--cyan); vertical-align:-3px; margin-left:2px; animation:blink 1s steps(1) infinite; box-shadow:0 0 10px var(--cyan) }
+  .risks { list-style:none; padding:0; margin:20px 0 0; display:grid; gap:8px }
+  .risks li { display:flex; gap:12px; align-items:center; padding:12px 14px; border-radius:12px; background:rgba(244,63,94,.07); border:1px solid rgba(244,63,94,.25) }
+  .risks li .k { font:700 12px var(--mono); color:var(--fail); width:26px; height:26px; flex:none; border-radius:8px; display:grid; place-items:center; background:rgba(244,63,94,.15) }
+  .src { color:var(--muted); font-size:12px; margin:16px 0 0; font-family:var(--mono) }
+  .src b { color:var(--violet) }
+
+  /* tests */
+  .filters { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap }
+  .filters button { font:600 12px/1 var(--mono); color:var(--muted); background:transparent; border:1px solid var(--line); border-radius:99px; padding:8px 12px; cursor:pointer; transition:all .2s }
+  .filters button.on, .filters button:hover { color:#fff; border-color:var(--cyan); background:rgba(34,211,238,.1) }
+  .tests { display:grid; gap:8px }
+  .test { display:grid; grid-template-columns:78px 1fr auto auto; gap:16px; align-items:center; padding:13px 16px; border-radius:12px;
+    background:var(--glass); border:1px solid var(--line); transition:transform .2s, background .2s, border-color .2s }
+  .test:hover { transform:translateX(4px); background:var(--glass2) }
+  .test.FAIL { border-left:3px solid var(--fail); background:linear-gradient(90deg,rgba(244,63,94,.12),var(--glass) 40%) }
+  .test.PASS { border-left:3px solid var(--pass) }
+  .test.NA { opacity:.5 }
+  .test.hide { display:none }
+  .pill { font:700 11px/1 var(--mono); letter-spacing:.08em; padding:7px 0; border-radius:8px; text-align:center }
+  .pill.PASS { color:var(--pass); background:rgba(52,211,153,.12); border:1px solid rgba(52,211,153,.35) }
+  .pill.FAIL { color:#fff; background:var(--fail); box-shadow:0 0 16px rgba(244,63,94,.6) }
+  .pill.NA { color:var(--muted); border:1px dashed var(--line) }
+  .test .t { font-weight:500 } .test .t small { color:var(--muted); font-family:var(--mono); font-size:11px; margin-left:6px }
+  .tags { display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end }
+  .tag { display:inline-block; font:600 10.5px/1 var(--mono); padding:5px 7px; border-radius:6px; white-space:nowrap; border:1px solid var(--line); color:#c3cbe3 }
+  .tag.soc { color:#67e8f9; border-color:rgba(34,211,238,.3) } .tag.iso { color:#c4b5fd; border-color:rgba(167,139,250,.3) }
+  .sev { font:700 10.5px/1 var(--mono); text-transform:uppercase; letter-spacing:.08em; padding:6px 8px; border-radius:6px; color:#fff; min-width:72px; text-align:center }
+  .sev.critical { background:var(--crit); box-shadow:0 0 14px rgba(255,46,99,.55) } .sev.high { background:#e11d48 } .sev.medium { background:#d97706 } .sev.low { background:#475569 }
+
+  /* findings */
+  .finding { margin-bottom:16px; border-color:rgba(244,63,94,.28) }
+  .finding::after { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,var(--fail),var(--violet)); box-shadow:0 0 18px var(--fail) }
+  .finding .top { display:flex; flex-wrap:wrap; gap:6px; align-items:center }
+  .finding .fid { font:700 12px var(--mono); color:var(--fail); margin-right:4px }
+  .finding h3 { font-size:20px; margin:10px 0 4px; letter-spacing:-.01em }
+  .finding .loc { font:12.5px var(--mono); color:var(--muted) }
+  .finding .loc b { color:var(--cyan); font-weight:600 }
+  .code { margin:14px 0; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#060a16 }
+  .code .bar { display:flex; align-items:center; gap:6px; padding:9px 12px; border-bottom:1px solid var(--line); font:11px var(--mono); color:var(--muted) }
+  .code .bar i { width:10px; height:10px; border-radius:50%; background:#ff5f57 } .code .bar i:nth-child(2){background:#febc2e} .code .bar i:nth-child(3){background:#28c840; margin-right:8px}
+  .code pre { margin:0; padding:14px 16px; font:13px/1.6 var(--mono); white-space:pre-wrap; word-break:break-word; color:#ffd1dc }
+  .code pre .ln { color:#4d5878; margin-right:14px; user-select:none }
+  .rr { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px }
+  .rr > div { padding:14px 16px; border-radius:12px; border:1px solid var(--line); background:rgba(0,0,0,.2) }
+  .rr .h { font:700 11px var(--mono); letter-spacing:.14em; margin-bottom:6px }
+  .rr .risk .h { color:var(--high) } .rr .fix .h { color:var(--pass) }
+  .rr .fix { border-color:rgba(52,211,153,.3); background:rgba(52,211,153,.05) }
+  .rr p { margin:0; font-size:14px }
+  .note { color:var(--muted); font-size:13px; margin:12px 0 0 } .note b { color:var(--violet) }
+  .hash { font:11px var(--mono); color:#5f6b8c; word-break:break-all; margin-top:10px }
+  .allclear { text-align:center; padding:44px; font-size:20px; color:var(--pass) }
+
+  /* evidence chain */
+  .chain { position:relative; padding-left:34px }
+  .chain::before { content:""; position:absolute; left:11px; top:6px; bottom:6px; width:2px; background:linear-gradient(180deg,var(--cyan),var(--violet),var(--pink)); box-shadow:0 0 12px var(--cyan) }
+  .link { position:relative; padding:12px 16px; margin-bottom:8px; border-radius:12px; background:var(--glass); border:1px solid var(--line) }
+  .link::before { content:""; position:absolute; left:-29px; top:50%; width:12px; height:12px; margin-top:-6px; border-radius:50%; background:var(--bg); border:2px solid var(--cyan); box-shadow:0 0 10px var(--cyan) }
+  .link code { font:600 13px var(--mono); color:#e2e8f8 }
+  .link .h { font:11.5px var(--mono); color:#6f7ca3; word-break:break-all; margin-top:4px }
+  .seal { margin-top:18px; display:flex; gap:16px; align-items:center; border-color:rgba(167,139,250,.45) }
+  .seal[hidden] { display:none }
+  .seal .lock { width:52px; height:52px; flex:none; border-radius:14px; display:grid; place-items:center; font-size:24px;
+    background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(167,139,250,.3)); box-shadow:0 0 26px rgba(167,139,250,.45) }
+  .seal .d { font:12px var(--mono); color:var(--violet); word-break:break-all }
+  footer { margin-top:56px; color:var(--muted); font-size:12.5px; text-align:center; font-family:var(--mono) }
+  code { font-family:var(--mono) }
+
+  @media (max-width:860px) {
+    header.hero { grid-template-columns:1fr; justify-items:center; text-align:center }
+    .chips, .actions { justify-content:center }
+    .eyebrow { font-size:10px; letter-spacing:.1em; line-height:1.4; text-align:left }
+    .kpi b { font-size:32px } .kpi > span { padding-right:0 } .kpi .ico { display:none }
+    .card { padding:18px }
+    .kpis { grid-template-columns:repeat(2,1fr) }
+    .duo, .rr { grid-template-columns:1fr }
+    .test { grid-template-columns:64px 1fr; } .test .tags, .test .sev { grid-column:2; justify-content:flex-start; justify-self:start }
+  }
+  @media (max-width:420px) { .gauge { width:250px; height:250px } .gauge .num { font-size:60px } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important }
+    .scanline, #net { display:none }
+  }
+  @media print {
+    #boot, #net, .aurora, .grid, .scanline, .actions, .filters { display:none !important }
+    :root { --ink:#111; --muted:#555; --line:#ddd; --glass:#fff; --glass2:#fff }
+    body { background:#fff; color:#111 }
+    h1 { color:#111; -webkit-text-fill-color:#111; background:none }
+    .rv, .cell { opacity:1 !important; transform:none !important }
+    .card, .test, .link { box-shadow:none !important; backdrop-filter:none; break-inside:avoid; background:#fff }
+    .gauge .num { color:#111; text-shadow:none } .summary { color:#111 } .caret { display:none }
+    .code { background:#f6f6f6 } .code pre { color:#9f1239 } .test.NA { opacity:1 } .test.hide { display:grid }
+  }
+</style>
+<style>
+  /* ================= tabs ================= */
+  .tabs { position:sticky; top:12px; z-index:20; display:flex; gap:4px; width:max-content; max-width:100%; margin:0 auto 40px; padding:5px;
+    border-radius:14px; background:rgba(8,12,26,.72); border:1px solid var(--line); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    overflow-x:auto; scrollbar-width:none; box-shadow:0 10px 40px -12px rgba(0,0,0,.8) }
+  .tabs::-webkit-scrollbar { display:none }
+  .tabs button { position:relative; z-index:1; font:600 13.5px/1 var(--sans); color:var(--muted); background:none; border:0; padding:11px 16px;
+    border-radius:10px; cursor:pointer; white-space:nowrap; transition:color .25s }
+  .tabs button:hover { color:#fff }
+  .tabs button.on { color:#fff }
+  .tabs .ind { position:absolute; z-index:0; top:5px; bottom:5px; left:5px; width:0; border-radius:10px;
+    background:linear-gradient(135deg,rgba(34,211,238,.24),rgba(167,139,250,.3)); border:1px solid rgba(167,139,250,.5);
+    box-shadow:0 0 22px rgba(34,211,238,.25); transition:left .4s cubic-bezier(.3,1.3,.5,1), width .4s cubic-bezier(.3,1.3,.5,1) }
+  .panel { display:none }
+  .panel.on { display:block; animation:panelIn .5s cubic-bezier(.2,.7,.2,1) }
+  @keyframes panelIn { from { opacity:0; transform:translateY(14px) } }
+
+  /* ================= shared ================= */
+  .lab-head { text-align:center; max-width:780px; margin:0 auto 34px }
+  .lab-head h1 { margin:16px 0 12px }
+  .lead { color:#b6bfd8; font-size:16px; margin:0 auto; max-width:680px }
+  .mock { font:600 10.5px/1.6 var(--mono); letter-spacing:.12em; color:var(--med); margin:14px 0 0; opacity:.85 }
+  #fx { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:60 }
+  #flash { position:fixed; inset:0; pointer-events:none; z-index:59; opacity:0 }
+  .floatnum { position:fixed; z-index:61; pointer-events:none; font:700 30px var(--sans); text-shadow:0 0 18px currentColor; transform:translate(-50%,-50%) }
+  #toasts { position:fixed; right:16px; bottom:16px; z-index:62; display:grid; gap:8px; width:min(340px,calc(100vw - 32px)) }
+  .toast { padding:12px 14px 12px 16px; border-radius:12px; background:rgba(13,20,40,.94); border:1px solid rgba(167,139,250,.55);
+    box-shadow:0 10px 40px -10px rgba(0,0,0,.8),0 0 24px -6px rgba(167,139,250,.6); animation:tin .45s cubic-bezier(.3,1.4,.5,1); transition:opacity .4s, transform .4s }
+  .toast b { display:block; font-size:14px } .toast span { font-size:12.5px; color:var(--muted) }
+  .toast.good { border-color:rgba(52,211,153,.6); box-shadow:0 10px 40px -10px rgba(0,0,0,.8),0 0 24px -6px rgba(52,211,153,.6) }
+  .toast.bad { border-color:rgba(244,63,94,.6); box-shadow:0 10px 40px -10px rgba(0,0,0,.8),0 0 24px -6px rgba(244,63,94,.6) }
+  .toast.out { opacity:0; transform:translateX(30px) }
+  @keyframes tin { from { opacity:0; transform:translateY(20px) scale(.9) } }
+  .glitch { animation:glitch .18s steps(2) 3 }
+  @keyframes glitch { 0% { text-shadow:4px 0 #f43f5e,-4px 0 #22d3ee; transform:translateX(-3px) } 100% { text-shadow:-4px 0 #f43f5e,4px 0 #22d3ee; transform:translateX(3px) } }
+  @keyframes pop { from { transform:scale(.3) rotate(-18deg); opacity:0 } }
+
+  /* ================= readiness lab ================= */
+  .lab { display:grid; grid-template-columns:minmax(0,400px) minmax(0,1fr); gap:16px; align-items:start }
+  .lab-stage { position:sticky; top:84px }
+  .lg { position:relative; width:min(330px,100%); aspect-ratio:1; margin:0 auto; touch-action:none; cursor:grab; --c:#fbbf24; user-select:none }
+  .lg.drag { cursor:grabbing }
+  .lg svg { width:100%; height:100%; overflow:visible; display:block }
+  .lg .orbit { animation:spin 30s linear infinite; transform-origin:150px 150px }
+  #labArc { transition:stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1); filter:drop-shadow(0 0 9px var(--c)) drop-shadow(0 0 22px var(--c)) }
+  .knob { cursor:grab; outline:none; filter:drop-shadow(0 0 8px rgba(255,255,255,.9)) }
+  .knob .halo { fill:none; stroke:#fff; stroke-opacity:.5; animation:halo 1.8s ease-out infinite; transform-origin:0 0 }
+  @keyframes halo { from { transform:scale(.8); stroke-opacity:.7 } to { transform:scale(2); stroke-opacity:0 } }
+  .knob:focus-visible .core { stroke:var(--cyan); stroke-width:3 }
+  .lg .mid { position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; text-align:center }
+  .odo { display:inline-flex; align-items:flex-start; font:700 74px/1 var(--sans); letter-spacing:-.03em; color:#fff; filter:drop-shadow(0 0 16px var(--c)) }
+  .odo .dg { display:inline-block; height:1em; overflow:hidden; width:.62em; transition:width .45s cubic-bezier(.3,1.3,.5,1) }
+  .odo .dg.off { width:0 }
+  .odo .strip { display:flex; flex-direction:column; transition:transform 1.1s cubic-bezier(.2,.9,.25,1.12) }
+  .odo .strip span { height:1em; display:block; text-align:center }
+  .odo small { font-size:32px; color:var(--c); margin:8px 0 0 2px; letter-spacing:0 }
+  .rank { display:inline-grid; place-items:center; width:44px; height:44px; border-radius:12px; font:700 24px var(--sans); color:#05070f;
+    background:var(--c); box-shadow:0 0 24px var(--c); margin-top:6px; transition:background .5s, box-shadow .5s }
+  .rank.pop { animation:pop .55s cubic-bezier(.3,1.8,.5,1) }
+  .pts { font:600 11px var(--mono); color:var(--muted); margin-top:8px; letter-spacing:.12em }
+  .target { margin-top:16px }
+  .trow { display:flex; justify-content:space-between; align-items:baseline; font:600 11px var(--mono); letter-spacing:.16em; color:var(--muted) }
+  .trow b { font:700 28px var(--sans); color:#fff; letter-spacing:-.02em }
+  .plan { margin:8px 0 14px; font-size:14px; color:#c9d0e6; min-height:64px }
+  .plan b { color:#fff }
+  .plan .chip { display:inline-block; margin:6px 4px 0 0; font-size:11px }
+  .plan .chip b { color:var(--pass) }
+  .hint { font:600 10.5px var(--mono); color:#5f6b8c; margin-top:14px; letter-spacing:.1em }
+  .btn:disabled { opacity:.45; cursor:not-allowed; transform:none; box-shadow:none }
+  .deck { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; perspective:900px }
+  .ctl { position:relative; text-align:left; font:inherit; color:var(--ink); cursor:pointer; padding:14px 14px 12px; border-radius:14px;
+    border:1px solid var(--line); background:var(--glass); transition:transform .2s, border-color .35s, background .35s, box-shadow .35s;
+    min-height:122px; display:flex; flex-direction:column; gap:7px }
+  .ctl:hover { transform:translateY(-3px) }
+  .ctl:focus-visible { outline:2px solid var(--cyan); outline-offset:2px }
+  .ctl.fail { border-color:rgba(244,63,94,.55); background:linear-gradient(160deg,rgba(244,63,94,.2),var(--glass) 62%); box-shadow:0 0 24px -8px rgba(244,63,94,.8) }
+  .ctl.pass { border-color:rgba(52,211,153,.32); background:linear-gradient(160deg,rgba(52,211,153,.1),var(--glass) 62%) }
+  .ctl.need { box-shadow:0 0 0 2px var(--cyan),0 0 26px -4px var(--cyan); animation:needp 1.1s ease-in-out infinite }
+  @keyframes needp { 50% { box-shadow:0 0 0 2px rgba(34,211,238,.25),0 0 8px -4px var(--cyan) } }
+  .ctl .row { display:flex; justify-content:space-between; align-items:center }
+  .ctl .cst { font:700 10.5px var(--mono); letter-spacing:.1em; padding:4px 7px; border-radius:6px }
+  .ctl.fail .cst { background:var(--fail); color:#fff } .ctl.pass .cst { background:rgba(52,211,153,.15); color:var(--pass) }
+  .ctl .cw { font:700 13px var(--mono) } .ctl.fail .cw { color:var(--fail) } .ctl.pass .cw { color:var(--pass) }
+  .ctl b { font-weight:600; font-size:14px; line-height:1.35 }
+  .ctl small { font:10.5px var(--mono); color:var(--muted); margin-top:auto }
+  .ctl .act { font:600 10px var(--mono); letter-spacing:.12em; color:#5f6b8c }
+  .ctl.fail .act { color:#fda4af }
+  .ctl.flip { animation:flip .55s ease }
+  @keyframes flip { 50% { transform:rotateY(90deg) scale(.94) } }
+  .ach { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:8px }
+  .badge { display:flex; gap:10px; align-items:center; padding:10px 12px; border-radius:12px; border:1px dashed var(--line); opacity:.38; filter:grayscale(1); transition:all .45s }
+  .badge.on { opacity:1; filter:none; border-style:solid; border-color:rgba(167,139,250,.55); background:rgba(167,139,250,.1); box-shadow:0 0 20px -6px rgba(167,139,250,.7) }
+  .badge.new { animation:pop .6s cubic-bezier(.3,1.8,.5,1) }
+  .badge .bi { font-size:22px; flex:none } .badge b { display:block; font-size:12.5px } .badge small { font-size:11px; color:var(--muted); line-height:1.3; display:block }
+
+  /* ================= agent pipeline ================= */
+  .pctl { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:22px }
+  .seg { display:inline-flex; flex-wrap:wrap; padding:4px; gap:4px; border-radius:12px; border:1px solid var(--line); background:var(--glass) }
+  .seg button { font:600 12.5px/1 var(--sans); color:var(--muted); background:none; border:0; border-radius:9px; padding:10px 13px; cursor:pointer; transition:all .2s }
+  .seg button:hover { color:#fff }
+  .seg button.on { color:#fff; background:rgba(34,211,238,.16); box-shadow:inset 0 0 0 1px rgba(34,211,238,.5) }
+  .seg button.go { color:#fff; background:linear-gradient(135deg,rgba(34,211,238,.28),rgba(167,139,250,.32)) }
+  .railbox { padding:0 }
+  .rail { display:flex; align-items:flex-start; padding:26px 18px 16px; overflow-x:auto }
+  .node { flex:0 0 auto; width:112px; text-align:center; opacity:.4; transition:opacity .4s }
+  .node.run, .node.ok, .node.fail, .node.warn { opacity:1 }
+  .node.ok, .node.fail, .node.warn { cursor:pointer }
+  .nic { position:relative; width:58px; height:58px; margin:0 auto 10px; border-radius:18px; display:grid; place-items:center; font-size:24px;
+    background:var(--glass2); border:1px solid var(--line); transition:all .4s; color:#c3cbe3 }
+  .nic svg { position:absolute; left:-6px; top:-6px; width:70px; height:70px; opacity:0; overflow:visible }
+  .nic svg circle { fill:none; stroke:var(--cyan); stroke-width:2.5; stroke-dasharray:40 170; stroke-linecap:round }
+  .node.run .nic { border-color:var(--cyan); box-shadow:0 0 28px rgba(34,211,238,.6); color:var(--cyan); transform:scale(1.08) }
+  .node.run .nic svg { opacity:1; animation:spin 1s linear infinite }
+  .node.ok .nic { border-color:var(--pass); background:rgba(52,211,153,.12); color:var(--pass); box-shadow:0 0 18px -4px var(--pass) }
+  .node.fail .nic { border-color:var(--fail); background:rgba(244,63,94,.18); color:var(--fail); box-shadow:0 0 22px -2px var(--fail) }
+  .node.warn .nic { border-color:var(--med); background:rgba(251,191,36,.12); color:var(--med); box-shadow:0 0 18px -4px var(--med) }
+  .node.sel .nic { outline:2px solid rgba(167,139,250,.75); outline-offset:4px }
+  .node b { display:block; font-size:12.5px; line-height:1.25 }
+  .node small { display:block; font:10.5px var(--mono); color:var(--muted); margin-top:3px }
+  .node .nt { display:block; font:600 10.5px var(--mono); margin-top:5px; min-height:14px; font-style:normal; color:var(--cyan) }
+  .node.ok .nt { color:var(--pass) } .node.fail .nt { color:var(--fail) } .node.warn .nt { color:var(--med) }
+  .wire { flex:1 0 24px; height:2px; margin-top:29px; background:rgba(148,163,209,.18); position:relative; overflow:hidden; border-radius:2px }
+  .wire.done { background:linear-gradient(90deg,var(--pass),var(--cyan)); box-shadow:0 0 10px var(--cyan) }
+  .wire.flow::after { content:""; position:absolute; top:0; width:40%; height:2px; background:linear-gradient(90deg,transparent,#fff,var(--cyan)); animation:flow .7s linear infinite }
+  @keyframes flow { from { left:-40% } to { left:100% } }
+  .pbar { height:3px; background:rgba(255,255,255,.06); border-radius:3px; overflow:hidden; margin:0 18px 16px }
+  .pbar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink)); box-shadow:0 0 12px var(--cyan); transition:width .6s }
+  .pgrid { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:14px; margin-top:14px; align-items:start }
+  .sv { min-height:480px }
+  .svh { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:16px; font:600 11px var(--mono); letter-spacing:.16em; color:var(--muted) }
+  .svh .live { color:var(--cyan) } .svh .live.rep { color:var(--violet) }
+  .svx { animation:panelIn .4s ease }
+  .svx h3 { font-size:18px }
+  .svx pre { max-height:270px; overflow:auto }
+  .term2 { padding:0; position:sticky; top:84px }
+  .term2 .th { display:flex; align-items:center; gap:8px; padding:13px 16px; border-bottom:1px solid var(--line); color:var(--muted); font:600 11px var(--mono); letter-spacing:.16em }
+  .term2 .th .dot { width:7px; height:7px; border-radius:50%; background:var(--pass); box-shadow:0 0 10px var(--pass); animation:blink 1.4s infinite }
+  .term2 .tb { height:540px; overflow-y:auto; padding:12px 16px; font:11.5px/1.7 var(--mono); color:#c3cbe3 }
+  .ll { animation:lin .3s both; word-break:break-word; margin-bottom:2px }
+  @keyframes lin { from { opacity:0 } }
+  .ll .ts { color:#4d5878; margin-right:8px }
+  .ag { font-weight:600; margin-right:6px }
+  .ag.github { color:#e2e8f8 } .ag.router { color:var(--violet) } .ag.analyst { color:var(--cyan) } .ag.remed { color:var(--pink) }
+  .ag.ci { color:#93c5fd } .ag.tel { color:var(--med) } .ag.delta { color:#5eead4 } .ag.gate { color:#fff }
+  .ll.bad { color:#fda4af } .ll.good { color:#86efac } .ll.warn { color:#fde68a }
+  .code pre.diff, .code pre.py { color:#c3cbe3 }
+  .diff .dl, .py .dl { display:block; animation:lin .25s both }
+  .diff .add { color:#86efac; background:rgba(52,211,153,.09) } .diff .del { color:#fda4af; background:rgba(244,63,94,.09) } .diff .ctx { color:#7d89ab }
+  .py .kw { color:#c4b5fd } .py .str { color:#fcd34d } .py .cm { color:#5f6b8c }
+  .code .bar .new { margin-left:auto; font-weight:700; color:#05070f; background:var(--pink); padding:2px 6px; border-radius:5px }
+  .pr-head { display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+  .pr-badge { font:700 11px var(--mono); padding:6px 10px; border-radius:99px; background:#238636; color:#fff }
+  .fr { display:grid; grid-template-columns:auto 1fr; gap:6px 12px; align-items:center; padding:11px 13px; border-radius:12px; border:1px solid rgba(244,63,94,.32);
+    background:rgba(244,63,94,.07); margin-bottom:8px; animation:slideIn .45s cubic-bezier(.3,1.3,.5,1) both }
+  .fr .loc { grid-column:2; font:11.5px var(--mono); color:var(--muted) }
+  @keyframes slideIn { from { opacity:0; transform:translateX(-16px) } }
+  .banner { margin-top:14px; padding:13px 15px; border-radius:12px; font-weight:600; font-size:14px; display:flex; gap:10px; align-items:center; animation:slideIn .45s both }
+  .banner.bad { background:rgba(244,63,94,.14); border:1px solid var(--fail); color:#fecdd3; box-shadow:0 0 26px -8px var(--fail) }
+  .banner.good { background:rgba(52,211,153,.11); border:1px solid var(--pass); color:#bbf7d0; box-shadow:0 0 26px -8px var(--pass) }
+  .vs { display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; text-align:center; margin-bottom:18px; padding:16px; border-radius:14px; background:rgba(0,0,0,.22); border:1px solid var(--line) }
+  .vs .big { font:700 56px/1 var(--sans); letter-spacing:-.03em; transition:color .5s }
+  .vs small { display:block; font:600 10.5px var(--mono); color:var(--muted); letter-spacing:.16em; margin-top:8px }
+  .vs .arrow { font-size:28px; color:var(--muted) }
+  .jobs .job { display:grid; grid-template-columns:22px 140px minmax(0,1fr) 54px; gap:4px 12px; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); font-size:13.5px }
+  .job .ji { width:18px; height:18px; border-radius:50%; border:2px solid var(--line); display:grid; place-items:center; font:700 11px var(--sans); color:#05070f }
+  .job.run .ji { border-color:var(--cyan); border-top-color:transparent; animation:spin .7s linear infinite }
+  .job.ok .ji { border:0; background:var(--pass); box-shadow:0 0 10px var(--pass) }
+  .job.ok .ji::after { content:"✓" }
+  .job .jn { font-weight:600 } .job .jd { font:11.5px var(--mono); color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+  .job .jt { font:11.5px var(--mono); color:var(--muted); text-align:right }
+  .job .jb { grid-column:2 / -1; height:3px; border-radius:3px; background:rgba(255,255,255,.06); overflow:hidden }
+  .job .jb i { display:block; height:100%; width:0; background:var(--cyan); box-shadow:0 0 8px var(--cyan); transition-property:width; transition-timing-function:linear }
+  .job.ok .jb i { background:var(--pass); box-shadow:none }
+  .panels { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px }
+  .panels > *, .dgrid > *, .pgrid > * { min-width:0 }
+  .gp { border-radius:12px; border:1px solid var(--line); background:#070b18; padding:12px 12px 10px; animation:panelIn .5s both }
+  .gp .gt { display:flex; justify-content:space-between; gap:8px; align-items:center; font-size:12.5px; font-weight:600 }
+  .gp .gt .tag { font-size:9.5px }
+  .gp .gq { font:10px var(--mono); color:#4d5878; margin:4px 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .gp svg { width:100%; height:auto; display:block; overflow:visible }
+  .gp .gl { font:600 8px var(--mono) }
+  .gp .area { opacity:0; transition:opacity .9s }
+  .gp .area.in { opacity:1 }
+  .gp .gs { display:flex; justify-content:space-between; align-items:center; gap:8px; font:11px var(--mono); color:var(--muted); margin-top:8px; flex-wrap:wrap }
+  .gp .gs b { color:#fff }
+  .vchip { font:700 9.5px var(--mono); letter-spacing:.08em; padding:4px 7px; border-radius:5px; opacity:0; transition:opacity .4s }
+  .vchip.in { opacity:1 }
+  .vchip.good { background:rgba(52,211,153,.15); color:var(--pass) } .vchip.eq { background:rgba(34,211,238,.12); color:var(--cyan) } .vchip.bad { background:var(--fail); color:#fff; box-shadow:0 0 12px rgba(244,63,94,.6) }
+  .glegend { display:flex; gap:16px; font:11px var(--mono); color:var(--muted); margin-top:10px }
+  .glegend i { display:inline-block; width:14px; height:2px; vertical-align:3px; margin-right:6px }
+  .dgrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px }
+  .dbox { padding:16px; border-radius:14px; border:1px solid var(--line); background:rgba(0,0,0,.22) }
+  .dbox .dh { font:600 10.5px var(--mono); letter-spacing:.14em; color:var(--muted) }
+  .dbox .dr { display:flex; align-items:baseline; gap:10px; margin-top:10px; font:600 15px var(--mono); color:#c3cbe3 }
+  .dbox .dd { font:700 44px/1 var(--sans); letter-spacing:-.03em; margin-top:10px }
+  .dt { display:grid; gap:6px }
+  .dt .r { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 40px; gap:10px; align-items:center; padding:10px 12px; border-radius:10px;
+    background:var(--glass); border:1px solid var(--line); font-size:13px; animation:slideIn .4s both }
+  .dt .r.h { background:none; border:0; font:600 10px var(--mono); letter-spacing:.14em; color:var(--muted); padding:0 12px; animation:none }
+  .dt .r small { display:block; font:10.5px var(--mono); color:var(--muted) }
+  .dt .ok { color:var(--pass) } .dt .no { color:var(--fail) }
+  .dt .d { font:700 16px var(--sans); text-align:center }
+  .vbig { text-align:center; padding:22px 10px 8px }
+  .vbig .vb { font:700 clamp(44px,8vw,84px)/1 var(--sans); letter-spacing:-.04em; animation:pop .7s cubic-bezier(.3,1.6,.5,1) both }
+  .vbig.good .vb { color:var(--pass); text-shadow:0 0 50px rgba(52,211,153,.75) }
+  .vbig.bad .vb { color:var(--fail); text-shadow:0 0 50px rgba(244,63,94,.8) }
+  .vbig p { color:#c9d0e6; margin:12px 0 0 }
+  .reasons { list-style:none; padding:0; margin:18px 0 0; display:grid; gap:6px }
+  .reasons li { padding:10px 12px; border-radius:10px; background:var(--glass); border:1px solid var(--line); font-size:13.5px; animation:slideIn .4s both }
+  .prc { margin-top:16px; border:1px solid var(--line); border-radius:12px; overflow:hidden; animation:slideIn .5s both }
+  .prc .ph { padding:9px 12px; background:var(--glass2); font-size:12.5px; color:var(--muted); border-bottom:1px solid var(--line) }
+  .prc .ph b { color:#fff }
+  .prc .pb { padding:12px 14px; font-size:13.5px }
+  .prc .pb code { font-size:12px; color:var(--cyan) }
+
+  @media (max-width:860px) {
+    .lab, .pgrid, .dgrid, .panels { grid-template-columns:1fr }
+    .lab-stage, .term2 { position:static }
+    .term2 .tb { height:300px }
+    .sv { min-height:0 }
+    .odo { font-size:64px }
+    .jobs .job { grid-template-columns:22px minmax(0,1fr) 50px }
+    .job .jd { grid-column:2 / -1; grid-row:2 } .job .jt { grid-column:3; grid-row:1 } .job .jb { grid-row:3 }
+    .dt .r { grid-template-columns:minmax(0,1fr) 70px 70px 28px; font-size:12px }
+    .tabs button { padding:10px 12px; font-size:12.5px }
+  }
+  @media print {
+    .tabs, #p-lab, #p-pipeline, #fx, #flash, #toasts { display:none !important }
+    #p-report { display:block !important; animation:none }
+  }
+
+  /* ================= Auditus brand ================= */
+  .brand { display:flex; align-items:center; gap:8px; padding:0 14px 0 10px; margin-right:4px; border-right:1px solid var(--line);
+    font:700 15px/1 var(--sans); letter-spacing:.02em; white-space:nowrap;
+    background:linear-gradient(100deg,#fff,var(--cyan) 60%,var(--violet)); -webkit-background-clip:text; background-clip:text; color:transparent }
+  .brand svg { flex:none; filter:drop-shadow(0 0 6px rgba(34,211,238,.6)) }
+  #boot .bw { font:700 clamp(44px,9vw,84px)/1 var(--sans); letter-spacing:.14em; color:#fff; text-shadow:0 0 30px rgba(34,211,238,.7),0 0 60px rgba(167,139,250,.5); margin-bottom:6px }
+  #boot .btag { font:600 12px var(--mono); letter-spacing:.4em; color:var(--cyan); margin-bottom:26px; text-transform:uppercase }
+  .fbrand { color:var(--cyan); font-weight:700 }
+
+  /* ================= auditor stamp ================= */
+  .stamp-wrap { margin-top:26px; min-height:96px }
+  .stamp { display:inline-block; text-align:center; padding:10px 20px 9px; border:5px double var(--sc); border-radius:12px; color:var(--sc);
+    transform:rotate(-7deg); opacity:0; cursor:pointer; user-select:none; position:relative;
+    filter:url(#ink) drop-shadow(0 0 14px color-mix(in srgb,var(--sc) 55%,transparent)) }
+  .stamp b { display:block; font:800 clamp(22px,3vw,30px)/1.15 var(--sans); letter-spacing:.08em; margin:4px 0 }
+  .stamp small { display:block; font:700 9.5px var(--mono); letter-spacing:.22em }
+  .stamp.ok { --sc:#34d399 } .stamp.mid { --sc:#fbbf24 } .stamp.bad { --sc:#f43f5e }
+  .stamp.slam { animation:slam .55s cubic-bezier(.2,1.5,.4,1) forwards }
+  .stamp.shown { opacity:1 }
+  @keyframes slam { 0% { opacity:0; transform:rotate(-24deg) scale(3.2) } 55% { opacity:1; transform:rotate(-5deg) scale(.9) } 100% { opacity:1; transform:rotate(-7deg) scale(1) } }
+  .inkring { position:fixed; z-index:58; pointer-events:none; border:3px solid var(--sc); border-radius:16px; transform:translate(-50%,-50%) rotate(-7deg); animation:inkring .7s ease-out forwards }
+  @keyframes inkring { from { opacity:.9 } to { opacity:0; width:var(--w2); height:var(--h2) } }
+  .proofhint { display:inline-flex; align-items:center; gap:8px; margin-top:16px; font:600 10.5px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--violet) }
+  .proofhint .dot { width:6px; height:6px; border-radius:50%; background:var(--violet); box-shadow:0 0 10px var(--violet); animation:blink 1.6s infinite }
+
+  /* ================= proof mode ================= */
+  [data-proof] { cursor:help }
+  .proofing { box-shadow:0 0 0 1px var(--cyan),0 0 34px -6px var(--cyan) !important; border-color:var(--cyan) !important }
+  .gauge .num.proofing, .sevrow .pts.proofing { box-shadow:none !important; color:#fff; text-shadow:0 0 24px var(--cyan) }
+  .proof { position:fixed; z-index:70; width:min(350px,calc(100vw - 24px)); padding:14px 16px; border-radius:14px; background:rgba(7,11,24,.96);
+    border:1px solid rgba(34,211,238,.5); box-shadow:0 24px 60px -12px rgba(0,0,0,.95),0 0 34px -10px rgba(34,211,238,.7); backdrop-filter:blur(14px);
+    opacity:0; transform:translateY(8px) scale(.97); transition:opacity .16s, transform .2s cubic-bezier(.3,1.4,.5,1); pointer-events:none }
+  .proof.on { opacity:1; transform:none }
+  .proof.pinned { pointer-events:auto; border-color:var(--violet) }
+  .proof .ph { display:flex; justify-content:space-between; font:700 9.5px var(--mono); letter-spacing:.18em; color:var(--cyan) }
+  .proof .pt { font-weight:600; font-size:15px; margin:6px 0 8px }
+  .proof .pf { font:600 12.5px/1.5 var(--mono); color:#fff; padding:9px 11px; border-radius:9px; background:rgba(34,211,238,.08); border:1px solid rgba(34,211,238,.28) }
+  .proof .pf em { font-style:normal; color:var(--pass) }
+  .proof .rows { margin-top:8px }
+  .proof .pr { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px; font:11.5px var(--mono); padding:5px 0; border-bottom:1px dashed var(--line); animation:lin .25s both }
+  .proof .pr span:nth-child(2) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e2e8f8 }
+  .proof .pr span:last-child { color:var(--muted) }
+  .proof .pr .g { color:var(--pass) } .proof .pr .r { color:var(--fail) }
+  .proof .pn { font:11px var(--mono); color:var(--muted); margin-top:9px }
+  .proof .pn b { color:var(--violet) }
+  .traced { outline:2px solid var(--cyan) !important; outline-offset:3px; box-shadow:0 0 26px -4px var(--cyan) !important }
+  .flashy { animation:flashy .9s ease 2 }
+  @keyframes flashy { 50% { background:rgba(34,211,238,.2) } }
+
+  @media (max-width:860px) { .stamp-wrap { text-align:center } .proofhint { justify-content:center } }
+  @media (max-width:480px) { .brand span { display:none } .brand { padding:0 8px } }
+  @media (prefers-reduced-motion: reduce) { .stamp { opacity:1 } }
+  @media print { .stamp { opacity:1 !important; filter:none } .proof, .proofhint { display:none !important } }
+</style>
+<meta name="description" content="Audit Readiness Bot scans infrastructure code, maps findings to SOC 2 and ISO 27001, and blocks commits that break compliance. Interactive demo report.">
+<meta property="og:title" content="Audit Readiness Bot: live demo">
+<meta property="og:description" content="Audit Readiness Bot scans infrastructure code, maps findings to SOC 2 and ISO 27001, and blocks commits that break compliance. Interactive demo report.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://leyasherman.github.io/audit-readiness-bot/img/report.png">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="ink"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.4 0 0 0 2.0" result="m"/>
+    <feComposite in="SourceGraphic" in2="m" operator="in"/></filter>
+</svg>
+<div id="boot" aria-hidden="true">
+  <div class="term">
+    <div class="bw" id="bootWord">AUDITUS</div>
+    <div class="btag">compliance, proven.</div>
+    <div class="l"><span class="p">$</span> auditbot scan demo-target</div>
+    <div class="l">› fingerprinting <b>5</b> config files <span class="p">(SHA-256)</span></div>
+    <div class="l">› evaluating <b>13</b> control tests against IaC</div>
+    <div class="l">› mapping to <span class="p">SOC 2 TSC</span> + <span class="p">ISO/IEC 27001:2022</span></div>
+    <div class="l"><span class="w">⚠ 3 findings detected</span></div>
+    <div class="l"><span class="ok">✓</span> evidence sealed · commit 8d84680d18</div>
+    <div class="bar"><i></i></div>
+    <div class="hint">CLICK TO SKIP</div>
+  </div>
+</div>
+<canvas id="net"></canvas>
+<div class="aurora"><i></i><i></i><i></i></div>
+<div class="grid"></div>
+<div class="scanline"></div>
+
+<main>
+  <div style="position:relative;z-index:21;text-align:center;font:500 13px/1.5 var(--sans);color:var(--muted);margin:0 auto 18px">
+    Live demo on <b style="color:var(--ink)">Acme Health</b>, a fictional company with planted compliance gaps ·
+    <a href="https://github.com/leyasherman/audit-readiness-bot" style="color:var(--cyan)">How it works and source code on GitHub</a></div>
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <span class="brand"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><defs><linearGradient id="brandG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs><path d="M12 2 L20 5.5 V11.5 C20 16.5 16.5 20.5 12 22 C7.5 20.5 4 16.5 4 11.5 V5.5 Z" fill="rgba(34,211,238,.12)" stroke="url(#brandG)" stroke-width="2"/><path d="M8.5 12.5 L11 15 L15.5 9.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Auditus</span></span>
+    <span class="ind"></span>
+    <button role="tab" data-tab="report" class="on">📊 Report</button>
+    <button role="tab" data-tab="lab">🎮 Readiness Lab</button>
+    <button role="tab" data-tab="pipeline">🤖 Agent Pipeline</button>
+  </nav>
+
+  <section class="panel on" id="p-report">
+  <header class="hero">
+    <div class="rv">
+      <span class="eyebrow"><span class="dot"></span>AUDITUS · AUTOMATED AUDIT EVIDENCE</span>
+      <h1>Audit Readiness<br>Report</h1>
+      <div class="chips">
+        <span class="chip">target <b>demo-target</b></span>
+        <span class="chip">commit <b>8d84680d18</b></span>
+        <span class="chip">branch <b>main</b></span>
+        <span class="chip">2026-11-25T19:02:40+00:00</span>
+      </div>
+      <div class="frameworks">AICPA SOC 2 TSC (2017, rev. 2022) · ISO/IEC 27001:2022 Annex A</div>
+      <div class="actions">
+        <button class="btn primary" onclick="window.print()">⤓ Save as PDF</button>
+        <button class="btn" onclick="location.reload()">↻ Replay</button>
+      </div>
+      <div class="proofhint"><span class="dot"></span>PROOF MODE · hover any number to see where it comes from</div>
+      <div class="stamp-wrap">
+        <div class="stamp mid" id="stamp" title="Click to stamp again">
+          <small>★ VERIFIED BY AUDITUS ★</small>
+          <b>REMEDIATION REQUIRED</b>
+          <small>SOC 2 · ISO 27001:2022 · 78% · 2026-11-25</small>
+        </div>
+      </div>
+    </div>
+    <div class="gauge rv" aria-label="Readiness score 78 percent">
+      <svg viewBox="0 0 300 300">
+        <defs>
+          <linearGradient id="gArc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#fbbf24"/></linearGradient>
+        </defs>
+        <g class="orbit"><circle cx="150" cy="150" r="142" fill="none" stroke="rgba(148,163,209,.25)" stroke-width="1" stroke-dasharray="2 8"/></g>
+        <g class="orbit2"><circle cx="150" cy="150" r="132" fill="none" stroke="#fbbf24" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="40 30 4 30"/></g>
+        <g id="ticks"></g>
+        <circle cx="150" cy="150" r="108" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="14"/>
+        <circle class="arc" id="arc" cx="150" cy="150" r="108" fill="none" stroke="url(#gArc)" stroke-width="14" stroke-linecap="round"
+                transform="rotate(-90 150 150)" stroke-dasharray="678.58" stroke-dashoffset="149.2876"/>
+      </svg>
+      <div class="center"><div>
+        <div class="num"><span data-count="78">78</span><small>%</small></div>
+        <div class="lbl">READINESS</div>
+        <div class="verdict">NEEDS ATTENTION</div>
+      </div></div>
+    </div>
+  </header>
+
+  <div class="kpis">
+    <div class="card kpi tilt rv good"><div class="ico">✓</div><b><span data-count="8">8</span><span style="color:var(--muted);font-size:24px">/11</span></b><span>control tests passing</span></div>
+    <div class="card kpi tilt rv bad"><div class="ico">✕</div><b data-count="3">3</b><span>control tests failing</span></div>
+    <div class="card kpi tilt rv bad"><div class="ico">⚑</div><b data-count="3">3</b><span>findings</span></div>
+    <div class="card kpi tilt rv"><div class="ico">#</div><b data-count="5">5</b><span>files fingerprinted (SHA-256)</span></div>
+  </div>
+  
+  <p class="method rv">Score = share of applicable control tests passing, weighted by severity (critical 10 · high 5 · medium 2 · low 1). Tests that don't apply to this codebase are excluded.</p>
+
+  <h2 class="rv"><span class="n">01</span> Posture</h2>
+  <div class="duo">
+    <div class="card tilt rv" id="radarCard">
+      <h3>Security domain coverage</h3>
+      <p class="sub">Severity-weighted pass rate per domain (applicable tests only)</p>
+      <svg id="radar" viewBox="-210 -150 420 300"></svg>
+    </div>
+    <div class="card tilt rv">
+      <h3>Weighted score breakdown</h3>
+      <p class="sub">Points earned vs. lost, by severity tier</p>
+      <div id="sevbars"></div>
+      <div class="legend"><span><i style="background:var(--pass)"></i>earned</span><span><i style="background:var(--fail)"></i>lost to findings</span></div>
+    </div>
+  </div>
+
+  <h2 class="rv"><span class="n">02</span> Framework control map</h2>
+  <div class="card heat rv" id="heat">
+    <h4>AICPA SOC 2 · Trust Services Criteria</h4><div class="cells" id="heatSoc"></div>
+    <h4>ISO/IEC 27001:2022 · Annex A</h4><div class="cells" id="heatIso" style="margin-bottom:0"></div>
+  </div>
+
+  <h2 class="rv"><span class="n">03</span> Executive summary</h2>
+  <div class="card rv">
+    <p class="summary" id="summary">Automated assessment shows 78% audit readiness across the evaluated SOC 2 / ISO 27001 control tests. 3 issue(s) need remediation before an audit; the most urgent is: audit logging enabled (cloudtrail).</p>
+    <ul class="risks"><li><span class="k">1</span>Audit logging enabled (CloudTrail) (CC7.2, CC7.3)</li><li><span class="k">2</span>MFA enforced for human IAM access (CC6.1)</li><li><span class="k">3</span>Least-privilege IAM (no wildcard actions) (CC6.3)</li></ul>
+    <p class="src">narrative: <b>offline-catalog</b> · control mapping: <b>deterministic catalog</b></p>
+  </div>
+
+  <h2 class="rv"><span class="n">04</span> Control test results</h2>
+  <div class="filters rv" id="filters">
+    <button class="on" data-f="all">ALL · 13</button>
+    <button data-f="FAIL">FAIL · 3</button>
+    <button data-f="PASS">PASS · 8</button>
+    <button data-f="NA">N/A · 2</button>
+  </div>
+  <div class="tests">
+    
+    
+    <div class="test rv FAIL" data-s="FAIL">
+      <span class="pill FAIL">FAIL</span>
+      <div class="t">Least-privilege IAM (no wildcard actions)<small>IAM-WILDCARD → F-003</small></div>
+      <div class="tags"><span class="tag soc">CC6.3</span><span class="tag iso">A.5.15</span><span class="tag iso">A.8.2</span></div>
+      <span class="sev high">high</span>
+    </div>
+    
+    
+    <div class="test rv FAIL" data-s="FAIL">
+      <span class="pill FAIL">FAIL</span>
+      <div class="t">MFA enforced for human IAM access<small>IAM-MFA → F-002</small></div>
+      <div class="tags"><span class="tag soc">CC6.1</span><span class="tag iso">A.8.5</span></div>
+      <span class="sev high">high</span>
+    </div>
+    
+    
+    <div class="test rv FAIL" data-s="FAIL">
+      <span class="pill FAIL">FAIL</span>
+      <div class="t">Audit logging enabled (CloudTrail)<small>LOG-AUDIT-TRAIL → F-001</small></div>
+      <div class="tags"><span class="tag soc">CC7.2</span><span class="tag soc">CC7.3</span><span class="tag iso">A.8.15</span><span class="tag iso">A.8.16</span></div>
+      <span class="sev high">high</span>
+    </div>
+    
+    
+    <div class="test rv PASS" data-s="PASS">
+      <span class="pill PASS">PASS</span>
+      <div class="t">No hardcoded credentials in source or config<small>SECRET-HARDCODED</small></div>
+      <div class="tags"><span class="tag soc">CC6.1</span><span class="tag iso">A.5.17</span><span class="tag iso">A.8.24</span></div>
+      <span class="sev critical">critical</span>
+    </div>
+    
+    
+    <div class="test rv PASS" data-s="PASS">
+      <span class="pill PASS">PASS</span>
+      <div class="t">Object storage encrypted at rest<small>S3-ENCRYPTION</small></div>
+      <div class="tags"><span class="tag soc">CC6.1</span><span class="tag soc">CC6.7</span><span class="tag iso">A.8.24</span></div>
+      <span class="sev high">high</span>
+    </div>
+    
+    
+    <div class="test rv PASS" data-s="PASS">
+      <span class="pill PASS">PASS</span>
+      <div class="t">Object storage not publicly accessible<small>S3-PUBLIC</small></div>
+      <div class="tags"><span class="tag soc">CC6.1</span><span class="tag soc">CC6.6</span><span class="tag iso">A.8.3</span><span class="tag iso">A.5.15</span></div>
+      <span class="sev critical">critical</span>
+    </div>
+    
+    
+    <div class="test rv PASS" data-s="PASS">
+      <span class="pill PASS">PASS</span>
+      <div class="t">Admin ports (SSH/RDP) not exposed to the internet<small>NET-OPEN-ADMIN</small></div>
+      <div class="tags"><span class="tag soc">CC6.6</span><span class="tag iso">A.8.20</span><span class="tag iso">A.8.22</span></div>
+      <span class="sev critical">critical</span>
+    </div>
+    
+    
+    <div class="test rv PASS" data-s="PASS">
+      <span class="pill PASS">PASS</span>
+      <div class="t">Databases encrypted at rest<small>DB-ENCRYPTION</small></div>
+      <div class="tags"><span class="tag soc">CC6.1</span><span class="tag soc">CC6.7</span><span class="tag iso">A.8.24</span></div>
+      <span class="sev high">high</span>
+    </div>
+    
+    
+    <div class="test rv PASS" data-s="PASS">
+      <span class="pill PASS">PASS</span>
+      <div class="t">Databases not publicly reachable<small>DB-PUBLIC</small></div>
+      <div class="tags"><span class="tag soc">CC6.6</span><span class="tag iso">A.8.20</span></div>
+      <span class="sev critical">critical</span>
+    </div>
+    
+    
+    <div class="test rv PASS" data-s="PASS">
+      <span class="pill PASS">PASS</span>
+      <div class="t">Secure application code and configuration (debug, CORS, injection, XSS, TLS)<small>APP-INSECURE-CONFIG</small></div>
+      <div class="tags"><span class="tag soc">CC6.6</span><span class="tag soc">CC8.1</span><span class="tag iso">A.8.9</span><span class="tag iso">A.8.25</span><span class="tag iso">A.8.28</span></div>
+      <span class="sev medium">medium</span>
+    </div>
+    
+    
+    <div class="test rv PASS" data-s="PASS">
+      <span class="pill PASS">PASS</span>
+      <div class="t">Hardened container configuration<small>CONTAINER-HARDENING</small></div>
+      <div class="tags"><span class="tag soc">CC6.8</span><span class="tag iso">A.8.9</span></div>
+      <span class="sev medium">medium</span>
+    </div>
+    
+    
+    <div class="test rv NA" data-s="NA">
+      <span class="pill NA">N/A</span>
+      <div class="t">Dependencies are the intended packages (no typosquats or AI-hallucinated names)<small>DEP-TYPOSQUAT</small></div>
+      <div class="tags"><span class="tag soc">CC7.1</span><span class="tag soc">CC8.1</span><span class="tag soc">CC9.2</span><span class="tag iso">A.5.21</span><span class="tag iso">A.8.28</span></div>
+      <span class="sev critical">critical</span>
+    </div>
+    
+    
+    <div class="test rv NA" data-s="NA">
+      <span class="pill NA">N/A</span>
+      <div class="t">AI agent context free of hidden or injected instructions<small>AI-AGENT-CONTEXT</small></div>
+      <div class="tags"><span class="tag soc">CC7.1</span><span class="tag soc">CC8.1</span><span class="tag iso">A.8.25</span><span class="tag iso">A.8.28</span></div>
+      <span class="sev high">high</span>
+    </div>
+    
+  </div>
+
+  <h2 class="rv"><span class="n">05</span> Findings &amp; remediation</h2>
+  
+  <div class="card finding tilt rv">
+    <div class="top">
+      <span class="fid">F-001</span>
+      <span class="sev high">high</span>
+      <span class="tag soc">SOC 2 CC7.2</span><span class="tag soc">SOC 2 CC7.3</span>
+      <span class="tag iso">ISO A.8.15</span><span class="tag iso">ISO A.8.16</span>
+    </div>
+    <h3>Audit logging enabled (CloudTrail)</h3>
+    <div class="loc"><b>project-wide</b> — No aws_cloudtrail resource defined in infrastructure</div>
+    
+    
+    <div class="rr">
+      <div class="risk"><div class="h">▲ RISK</div><p>Without an audit trail, security incidents cannot be detected or investigated, which auditors flag immediately.</p></div>
+      <div class="fix"><div class="h">✓ REMEDIATION</div><p>Add an aws_cloudtrail resource (multi-region, log file validation on) writing to an encrypted bucket.</p></div>
+    </div>
+    
+    <p class="note"><b>Auditor evidence ·</b> Provide the fixed configuration and the passing scan output as evidence.</p>
+    
+  </div>
+  
+  <div class="card finding tilt rv">
+    <div class="top">
+      <span class="fid">F-002</span>
+      <span class="sev high">high</span>
+      <span class="tag soc">SOC 2 CC6.1</span>
+      <span class="tag iso">ISO A.8.5</span>
+    </div>
+    <h3>MFA enforced for human IAM access</h3>
+    <div class="loc"><b>infra/main.tf:63</b> — No IAM policy enforces aws:MultiFactorAuthPresent</div>
+    <div class="code"><div class="bar"><i></i><i></i><i></i>infra/main.tf</div><pre><span class="ln">63</span>resource &#34;aws_iam_user&#34; &#34;deploy&#34; {</pre></div>
+    
+    <div class="rr">
+      <div class="risk"><div class="h">▲ RISK</div><p>Without MFA, a single stolen password gives full access to the cloud account.</p></div>
+      <div class="fix"><div class="h">✓ REMEDIATION</div><p>Attach a policy that denies actions when aws:MultiFactorAuthPresent is false, or enforce MFA via SSO.</p></div>
+    </div>
+    
+    <p class="note"><b>Auditor evidence ·</b> Provide the fixed configuration and the passing scan output as evidence.</p>
+    <div class="hash">file sha256 <span class="scr">2154c41a22695053640300c5a57f88ac9a64cad633746db2ebc01bf0ad580a4d</span> · detected 2026-11-25T19:02:40+00:00</div>
+  </div>
+  
+  <div class="card finding tilt rv">
+    <div class="top">
+      <span class="fid">F-003</span>
+      <span class="sev high">high</span>
+      <span class="tag soc">SOC 2 CC6.3</span>
+      <span class="tag iso">ISO A.5.15</span><span class="tag iso">ISO A.8.2</span>
+    </div>
+    <h3>Least-privilege IAM (no wildcard actions)</h3>
+    <div class="loc"><b>infra/main.tf:73</b> — IAM policy allows all actions (*)</div>
+    <div class="code"><div class="bar"><i></i><i></i><i></i>infra/main.tf</div><pre><span class="ln">73</span>Action   = &#34;*&#34;</pre></div>
+    
+    <div class="rr">
+      <div class="risk"><div class="h">▲ RISK</div><p>Wildcard IAM actions grant full admin rights and break least privilege.</p></div>
+      <div class="fix"><div class="h">✓ REMEDIATION</div><p>Replace &#34;*&#34; with the specific actions the workload needs, scoped to specific resources.</p></div>
+    </div>
+    
+    <p class="note"><b>Auditor evidence ·</b> Provide the fixed configuration and the passing scan output as evidence.</p>
+    <div class="hash">file sha256 <span class="scr">2154c41a22695053640300c5a57f88ac9a64cad633746db2ebc01bf0ad580a4d</span> · detected 2026-11-25T19:02:40+00:00</div>
+  </div>
+  
+
+  <h2 class="rv"><span class="n">06</span> Evidence chain</h2>
+  <p class="method rv" style="margin-top:-6px">Every file the bot read, with its SHA-256 fingerprint. An auditor can recompute these hashes on commit <code>8d84680d18</code> to confirm that this exact version was assessed.</p>
+  <div class="chain">
+    <div class="link rv"><code>.env.example</code><div class="h scr">a2d3676520d208065e88e5d1cb8b35a46510b20e5fbc7e77335014618188824f</div></div><div class="link rv"><code>.github/workflows/compliance-gate.yml</code><div class="h scr">2e981028ebb16b2de441bdd036443664ef42ab9f66cc67cc200a1ebb64c1ed71</div></div><div class="link rv"><code>app/settings.py</code><div class="h scr">26d3d71be8f5f9cffd0f21c6e8f75883d6ce0bbca722f463b53110eb3c1a5aff</div></div><div class="link rv"><code>docker-compose.yml</code><div class="h scr">9a360b0aef9d04053ac07927ccbe1e0789789c082aae89653bf8d5690dc3635c</div></div><div class="link rv"><code>infra/main.tf</code><div class="h scr">2154c41a22695053640300c5a57f88ac9a64cad633746db2ebc01bf0ad580a4d</div></div>
+  </div>
+  <div class="card seal rv" id="seal" hidden>
+    <div class="lock">🔒</div>
+    <div><div style="font-weight:600">Manifest digest</div>
+      <div class="sub" style="margin:2px 0 6px">SHA-256 of the list above in <code>sha256sum</code> format (<code>&lt;hash&gt;␠␠&lt;path&gt;\n</code> per file)</div>
+      <div class="d scr" id="sealHash"></div></div>
+  </div>
+
+  </section>
+
+  <section class="panel" id="p-lab">
+    <div class="lab-head rv">
+      <span class="eyebrow"><span class="dot"></span>READINESS LAB · INTERACTIVE SIMULATION</span>
+      <h1>Play the audit.</h1>
+      <p class="lead">Fix failing controls, break passing ones, drag the dial to set a target. Every point uses the scanner's real severity weights (critical 10 · high 5 · medium 2 · low 1), so you see what each fix is worth before you write it. Nothing here touches the repo.</p>
+    </div>
+    <div class="lab">
+      <div class="card lab-stage rv" id="labStage">
+        <div class="lg" id="lg">
+          <svg viewBox="0 0 300 300" id="labSvg">
+            <defs><linearGradient id="labGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" id="labS1" stop-color="#fb923c"/><stop offset="1" id="labS2" stop-color="#fbbf24"/></linearGradient></defs>
+            <g class="orbit"><circle cx="150" cy="150" r="143" fill="none" stroke="rgba(148,163,209,.25)" stroke-dasharray="2 8"/></g>
+            <circle cx="150" cy="150" r="126" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>
+            <circle id="labGhost" cx="150" cy="150" r="126" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="4" stroke-dasharray="0 999" stroke-linecap="round" transform="rotate(-90 150 150)"/>
+            <circle cx="150" cy="150" r="106" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="16"/>
+            <circle id="labArc" cx="150" cy="150" r="106" fill="none" stroke="url(#labGrad)" stroke-width="16" stroke-linecap="round" transform="rotate(-90 150 150)" stroke-dasharray="666.02" stroke-dashoffset="666.02"/>
+            <g id="labKnob" class="knob" tabindex="0" role="slider" aria-label="Target readiness score" aria-valuemin="1" aria-valuemax="100" transform="translate(150 24)">
+              <circle class="halo" r="12"/>
+              <circle class="core" r="13" fill="#0b1226" stroke="#fff" stroke-width="2"/><circle r="5" fill="#fff"/>
+            </g>
+          </svg>
+          <div class="mid"><div>
+            <div class="odo" id="labNum"></div>
+            <div><span class="rank" id="labRank">–</span></div>
+            <div class="pts" id="labPts"></div>
+          </div></div>
+        </div>
+        <div class="target">
+          <div class="trow"><span>TARGET</span><b id="labTarget">85%</b></div>
+          <div class="plan" id="labPlan"></div>
+          <div class="actions" style="margin-top:0"><button class="btn primary" id="labAuto">⚡ Auto-fix to target</button><button class="btn" id="labReset">↺ Reset</button></div>
+          <div class="hint">◉ DRAG THE DIAL · OR FOCUS IT AND USE ← →</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:16px;min-width:0">
+        <div class="card rv"><h3>Control deck</h3><p class="sub">Click a red card to remediate it · click a green one to see what breaking it would cost</p><div class="deck" id="deck"></div></div>
+        <div class="card rv"><h3>Achievements · <span id="achN">0</span>/<span id="achT">0</span></h3><p class="sub">Unlocked as you play</p><div class="ach" id="ach"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-pipeline">
+    <div class="lab-head rv">
+      <span class="eyebrow"><span class="dot"></span>AGENT PIPELINE · PR COMPLIANCE AUTOPILOT</span>
+      <h1>From pull request to verdict.</h1>
+      <p class="lead">A team of agents takes a PR from intake to merge decision: static compliance analysis, auto-remediation with tests, CI/CD, live telemetry from the canary, a before/after compliance delta, and a final gate.</p>
+      <p class="mock">SIMULATED RUN · agent steps and Prometheus telemetry are mocked · static scores are computed from this scan's control tests</p>
+      <div class="pctl">
+        <div class="seg" id="pScen"><button class="on" data-s="A">✓ Fix verified → approve</button><button data-s="B">✕ Runtime regression → block</button></div>
+        <div class="seg"><button class="go" id="pRun">▶ Run</button><button id="pSpeed" title="Playback speed">1×</button></div>
+      </div>
+    </div>
+    <div class="card railbox rv">
+      <div class="rail" id="rail"></div>
+      <div class="pbar"><i id="pBar"></i></div>
+    </div>
+    <div class="pgrid">
+      <div class="card sv rv"><div class="svh"><span id="svTitle">WAITING FOR A PULL REQUEST…</span><span id="svMode" class="live"></span></div><div id="svBody"></div></div>
+      <div class="card term2 rv"><div class="th"><span class="dot"></span>AGENT LOG</div><div class="tb" id="plog"></div></div>
+    </div>
+  </section>
+
+  <footer class="rv"><b class="fbrand">Auditus</b> · compliance, proven · generated by audit-readiness-bot v0.1.0 · machine-readable evidence: <a href="evidence.json" style="color:var(--cyan)">evidence.json</a> · <a href="report-classic.html" style="color:var(--cyan)">single-page report</a></footer>
+</main>
+<canvas id="fx"></canvas>
+<div id="flash"></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script id="ev" type="application/json">{"control_tests": [{"count": 0, "findings": [], "id": "SECRET-HARDCODED", "iso27001": ["A.5.17", "A.8.24"], "severity": "critical", "soc2": ["CC6.1"], "status": "PASS", "title": "No hardcoded credentials in source or config"}, {"count": 0, "findings": [], "id": "DEP-TYPOSQUAT", "iso27001": ["A.5.21", "A.8.28"], "severity": "critical", "soc2": ["CC7.1", "CC8.1", "CC9.2"], "status": "N/A", "title": "Dependencies are the intended packages (no typosquats or AI-hallucinated names)"}, {"count": 0, "findings": [], "id": "AI-AGENT-CONTEXT", "iso27001": ["A.8.25", "A.8.28"], "severity": "high", "soc2": ["CC7.1", "CC8.1"], "status": "N/A", "title": "AI agent context free of hidden or injected instructions"}, {"count": 0, "findings": [], "id": "S3-ENCRYPTION", "iso27001": ["A.8.24"], "severity": "high", "soc2": ["CC6.1", "CC6.7"], "status": "PASS", "title": "Object storage encrypted at rest"}, {"count": 0, "findings": [], "id": "S3-PUBLIC", "iso27001": ["A.8.3", "A.5.15"], "severity": "critical", "soc2": ["CC6.1", "CC6.6"], "status": "PASS", "title": "Object storage not publicly accessible"}, {"count": 0, "findings": [], "id": "NET-OPEN-ADMIN", "iso27001": ["A.8.20", "A.8.22"], "severity": "critical", "soc2": ["CC6.6"], "status": "PASS", "title": "Admin ports (SSH/RDP) not exposed to the internet"}, {"count": 0, "findings": [], "id": "DB-ENCRYPTION", "iso27001": ["A.8.24"], "severity": "high", "soc2": ["CC6.1", "CC6.7"], "status": "PASS", "title": "Databases encrypted at rest"}, {"count": 0, "findings": [], "id": "DB-PUBLIC", "iso27001": ["A.8.20"], "severity": "critical", "soc2": ["CC6.6"], "status": "PASS", "title": "Databases not publicly reachable"}, {"count": 1, "findings": ["F-003"], "id": "IAM-WILDCARD", "iso27001": ["A.5.15", "A.8.2"], "severity": "high", "soc2": ["CC6.3"], "status": "FAIL", "title": "Least-privilege IAM (no wildcard actions)"}, {"count": 1, "findings": ["F-002"], "id": "IAM-MFA", "iso27001": ["A.8.5"], "severity": "high", "soc2": ["CC6.1"], "status": "FAIL", "title": "MFA enforced for human IAM access"}, {"count": 1, "findings": ["F-001"], "id": "LOG-AUDIT-TRAIL", "iso27001": ["A.8.15", "A.8.16"], "severity": "high", "soc2": ["CC7.2", "CC7.3"], "status": "FAIL", "title": "Audit logging enabled (CloudTrail)"}, {"count": 0, "findings": [], "id": "APP-INSECURE-CONFIG", "iso27001": ["A.8.9", "A.8.25", "A.8.28"], "severity": "medium", "soc2": ["CC6.6", "CC8.1"], "status": "PASS", "title": "Secure application code and configuration (debug, CORS, injection, XSS, TLS)"}, {"count": 0, "findings": [], "id": "CONTAINER-HARDENING", "iso27001": ["A.8.9"], "severity": "medium", "soc2": ["CC6.8"], "status": "PASS", "title": "Hardened container configuration"}], "executive_summary": "Automated assessment shows 78% audit readiness across the evaluated SOC 2 / ISO 27001 control tests. 3 issue(s) need remediation before an audit; the most urgent is: audit logging enabled (cloudtrail).", "files_scanned": [{"path": ".env.example", "sha256": "a2d3676520d208065e88e5d1cb8b35a46510b20e5fbc7e77335014618188824f"}, {"path": ".github/workflows/compliance-gate.yml", "sha256": "2e981028ebb16b2de441bdd036443664ef42ab9f66cc67cc200a1ebb64c1ed71"}, {"path": "app/settings.py", "sha256": "26d3d71be8f5f9cffd0f21c6e8f75883d6ce0bbca722f463b53110eb3c1a5aff"}, {"path": "docker-compose.yml", "sha256": "9a360b0aef9d04053ac07927ccbe1e0789789c082aae89653bf8d5690dc3635c"}, {"path": "infra/main.tf", "sha256": "2154c41a22695053640300c5a57f88ac9a64cad633746db2ebc01bf0ad580a4d"}], "findings": [{"auditor_note": "Provide the fixed configuration and the passing scan output as evidence.", "detail": "No aws_cloudtrail resource defined in infrastructure", "detected_at": "2026-11-25T19:02:40+00:00", "file": null, "file_sha256": null, "id": "F-001", "iso27001": ["A.8.15", "A.8.16"], "line": null, "remediation": "Add an aws_cloudtrail resource (multi-region, log file validation on) writing to an encrypted bucket.", "risk_explanation": "Without an audit trail, security incidents cannot be detected or investigated, which auditors flag immediately.", "rule": "LOG-AUDIT-TRAIL", "severity": "high", "snippet": "(project-wide)", "soc2": ["CC7.2", "CC7.3"], "title": "Audit logging enabled (CloudTrail)"}, {"auditor_note": "Provide the fixed configuration and the passing scan output as evidence.", "detail": "No IAM policy enforces aws:MultiFactorAuthPresent", "detected_at": "2026-11-25T19:02:40+00:00", "file": "infra/main.tf", "file_sha256": "2154c41a22695053640300c5a57f88ac9a64cad633746db2ebc01bf0ad580a4d", "id": "F-002", "iso27001": ["A.8.5"], "line": 63, "remediation": "Attach a policy that denies actions when aws:MultiFactorAuthPresent is false, or enforce MFA via SSO.", "risk_explanation": "Without MFA, a single stolen password gives full access to the cloud account.", "rule": "IAM-MFA", "severity": "high", "snippet": "resource \"aws_iam_user\" \"deploy\" {", "soc2": ["CC6.1"], "title": "MFA enforced for human IAM access"}, {"auditor_note": "Provide the fixed configuration and the passing scan output as evidence.", "detail": "IAM policy allows all actions (*)", "detected_at": "2026-11-25T19:02:40+00:00", "file": "infra/main.tf", "file_sha256": "2154c41a22695053640300c5a57f88ac9a64cad633746db2ebc01bf0ad580a4d", "id": "F-003", "iso27001": ["A.5.15", "A.8.2"], "line": 73, "remediation": "Replace \"*\" with the specific actions the workload needs, scoped to specific resources.", "risk_explanation": "Wildcard IAM actions grant full admin rights and break least privilege.", "rule": "IAM-WILDCARD", "severity": "high", "snippet": "Action   = \"*\"", "soc2": ["CC6.3"], "title": "Least-privilege IAM (no wildcard actions)"}], "frameworks": ["AICPA SOC 2 TSC (2017, rev. 2022)", "ISO/IEC 27001:2022 Annex A"], "generated_at": "2026-11-25T19:02:40+00:00", "narrative_source": "offline-catalog", "schema": "auditbot.evidence/v1", "summary": {"coverage_warning": null, "findings": 3, "readiness_score": 78, "score_method": "severity-weighted share of passing control tests (critical 10, high 5, medium 2, low 1)", "tests_evaluated": 11, "tests_failed": 3, "tests_passed": 8}, "target": {"git_branch": "main", "git_commit": "8d84680d1833e3322075bc8776f45759f00f03bf", "name": "demo-target", "path": "demo-target"}, "tool": {"name": "audit-readiness-bot", "version": "0.1.0"}, "top_risks": ["Audit logging enabled (CloudTrail) (CC7.2, CC7.3)", "MFA enforced for human IAM access (CC6.1)", "Least-privilege IAM (no wildcard actions) (CC6.3)"]}</script>
+<script>
+(function () {
+  "use strict";
+  var EV = JSON.parse(document.getElementById("ev").textContent);
+  var RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var W = { critical: 10, high: 5, medium: 2, low: 1 };
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+
+  /* ---------- gauge ticks ---------- */
+  var ticks = $("#ticks");
+  for (var i = 0; i < 60; i++) {
+    var a = i / 60 * Math.PI * 2, r1 = 120, r2 = i % 5 ? 124 : 127;
+    el("line", { x1: 150 + r1 * Math.sin(a), y1: 150 - r1 * Math.cos(a), x2: 150 + r2 * Math.sin(a), y2: 150 - r2 * Math.cos(a),
+      stroke: i / 60 * 100 < EV.summary.readiness_score ? "#fbbf24" : "rgba(148,163,209,.25)", "stroke-width": i % 5 ? 1 : 2 }, ticks);
+  }
+  var arc = $("#arc"), arcTarget = arc.getAttribute("stroke-dashoffset");
+
+  /* ---------- radar ---------- */
+  var DOM = { SECRET: "Secrets", DEP: "Supply chain", AI: "AI agents", S3: "Storage", NET: "Network", DB: "Databases", IAM: "Identity", LOG: "Logging", APP: "App config", CONTAINER: "Containers", K8S: "Kubernetes", DOCKER: "Docker" };
+  var doms = {};
+  EV.control_tests.forEach(function (t) {
+    if (t.status === "N/A") return;
+    var k = t.id.split("-")[0], d = doms[k] || (doms[k] = { name: DOM[k] || k.charAt(0) + k.slice(1).toLowerCase(), got: 0, tot: 0, fail: 0 });
+    d.tot += W[t.severity] || 1; if (t.status === "PASS") d.got += W[t.severity] || 1; else d.fail++;
+  });
+  var dl = Object.keys(doms).map(function (k) { return doms[k]; });
+  var radar = $("#radar"), R = 98, radarPoly, radarDots = [];
+  if (dl.length < 3) { $("#radarCard").style.display = "none"; }
+  else {
+    var n = dl.length, pt = function (j, v) { var a = j / n * Math.PI * 2; return [v * R * Math.sin(a), -v * R * Math.cos(a)]; };
+    [0.25, 0.5, 0.75, 1].forEach(function (lv) {
+      el("polygon", { points: dl.map(function (_, j) { return pt(j, lv).join(","); }).join(" "), fill: lv === 1 ? "rgba(34,211,238,.03)" : "none", stroke: "rgba(148,163,209,.18)", "stroke-width": 1 }, radar);
+    });
+    dl.forEach(function (d, j) {
+      var p = pt(j, 1), q = pt(j, 1.2);
+      el("line", { x1: 0, y1: 0, x2: p[0], y2: p[1], stroke: "rgba(148,163,209,.15)" }, radar);
+      var tx = el("text", { x: q[0], y: q[1] + 4, "text-anchor": Math.abs(q[0]) < 8 ? "middle" : q[0] > 0 ? "start" : "end" }, radar);
+      tx.textContent = d.name; if (d.fail) tx.style.fill = "#fb7185";
+    });
+    var grad = el("radialGradient", { id: "rg" }, el("defs", {}, radar));
+    el("stop", { offset: "0", "stop-color": "#22d3ee", "stop-opacity": ".15" }, grad);
+    el("stop", { offset: "1", "stop-color": "#a78bfa", "stop-opacity": ".45" }, grad);
+    radarPoly = el("polygon", { points: dl.map(function () { return "0,0"; }).join(" "), fill: "url(#rg)", stroke: "#22d3ee", "stroke-width": 2, style: "filter:drop-shadow(0 0 8px #22d3ee)" }, radar);
+    dl.forEach(function (d) {
+      var c = el("circle", { cx: 0, cy: 0, r: 4.5, fill: d.fail ? "#f43f5e" : "#34d399", style: "filter:drop-shadow(0 0 6px " + (d.fail ? "#f43f5e" : "#34d399") + ")" }, radar);
+      var ti = el("title", {}, c); ti.textContent = d.name + ": " + Math.round(d.got / d.tot * 100) + "%";
+      radarDots.push(c);
+    });
+  }
+  function drawRadar(k) {
+    if (!radarPoly) return;
+    var n = dl.length, pts = dl.map(function (d, j) { var v = Math.max(.04, d.got / d.tot) * k, a = j / n * Math.PI * 2; return [v * R * Math.sin(a), -v * R * Math.cos(a)]; });
+    radarPoly.setAttribute("points", pts.map(function (p) { return p.join(","); }).join(" "));
+    pts.forEach(function (p, j) { radarDots[j].setAttribute("cx", p[0]); radarDots[j].setAttribute("cy", p[1]); });
+  }
+
+  /* ---------- severity bars ---------- */
+  var sb = $("#sevbars"), totalPts = 0, sevs = ["critical", "high", "medium", "low"].map(function (s) {
+    var ts = EV.control_tests.filter(function (t) { return t.severity === s && t.status !== "N/A"; });
+    var p = ts.filter(function (t) { return t.status === "PASS"; }).length;
+    totalPts += ts.length * W[s];
+    return { s: s, p: p * W[s], f: (ts.length - p) * W[s] };
+  });
+  sevs.forEach(function (x) {
+    var row = document.createElement("div"); row.className = "sevrow";
+    row.innerHTML = '<span class="name" style="color:var(--' + { critical: "crit", high: "high", medium: "med", low: "low" }[x.s] + ')">' + x.s + '</span><div class="track"><i class="p"></i><i class="f"></i></div><span class="pts">' + x.p + " / " + (x.p + x.f) + "</span>";
+    row.dataset.p = totalPts ? x.p / totalPts * 100 : 0; row.dataset.f = totalPts ? x.f / totalPts * 100 : 0;
+    sb.appendChild(row);
+  });
+  function fillBars() { $$(".sevrow").forEach(function (r) { $("i.p", r).style.width = r.dataset.p + "%"; $("i.f", r).style.width = r.dataset.f + "%"; }); }
+
+  /* ---------- heatmap ---------- */
+  function heat(key, host) {
+    var m = {};
+    EV.control_tests.forEach(function (t) {
+      t[key].forEach(function (c) {
+        var e = m[c] || (m[c] = { st: "NA", tests: [] }); e.tests.push(t.status + "  " + t.title);
+        if (t.status === "FAIL") e.st = "FAIL"; else if (t.status === "PASS" && e.st !== "FAIL") e.st = "PASS";
+      });
+    });
+    Object.keys(m).sort(function (a, b) { return a.localeCompare(b, undefined, { numeric: true }); }).forEach(function (c) {
+      var d = document.createElement("span"); d.className = "cell " + m[c].st; d.textContent = c;
+      d.setAttribute("data-tip", m[c].tests.join("\n")); host.appendChild(d);
+    });
+  }
+  heat("soc2", $("#heatSoc")); heat("iso27001", $("#heatIso"));
+  function popCells() { $$(".cell").forEach(function (c, j) { setTimeout(function () { c.classList.add("in"); }, RM ? 0 : j * 45); }); }
+
+  /* ---------- count-up ---------- */
+  function countUp(e) {
+    var to = +e.getAttribute("data-count"), t0 = performance.now(), dur = 1600;
+    if (RM || !to) { e.textContent = to; return; }
+    (function f(t) { var k = Math.min(1, (t - t0) / dur); e.textContent = Math.round(to * (1 - Math.pow(1 - k, 4))); if (k < 1) requestAnimationFrame(f); })(t0);
+  }
+
+  /* ---------- typing ---------- */
+  var sum = $("#summary"), sumText = sum.textContent.trim(), typed = false;
+  function typeSummary() {
+    if (typed || RM || !sumText) return; typed = true;
+    sum.textContent = ""; var caret = document.createElement("span"); caret.className = "caret";
+    var txt = document.createTextNode(""); sum.appendChild(txt); sum.appendChild(caret);
+    var i = 0, step = Math.max(1, Math.round(sumText.length / 220));
+    (function f() { i = Math.min(sumText.length, i + step); txt.nodeValue = sumText.slice(0, i); if (i < sumText.length) setTimeout(f, 14); else setTimeout(function () { caret.remove(); }, 1800); })();
+  }
+  window.addEventListener("beforeprint", function () { sum.textContent = sumText; $$(".scr").forEach(function (e) { if (e.dataset.v) e.textContent = e.dataset.v; }); });
+
+  /* ---------- hash scramble ---------- */
+  var HEX = "0123456789abcdef";
+  function scramble(e) {
+    var v = e.dataset.v || (e.dataset.v = e.textContent.trim()); if (RM || !v) return;
+    var t0 = performance.now(), dur = 900;
+    (function f(t) {
+      var k = (t - t0) / dur, fixed = Math.floor(v.length * Math.min(1, k)), s = v.slice(0, fixed);
+      for (var j = fixed; j < v.length; j++) s += HEX[(Math.random() * 16) | 0];
+      e.textContent = s; if (k < 1) requestAnimationFrame(f); else e.textContent = v;
+    })(t0);
+  }
+
+  /* ---------- manifest digest ---------- */
+  try {
+    if (window.crypto && crypto.subtle && EV.files_scanned.length) {
+      var manifest = EV.files_scanned.map(function (f) { return f.sha256 + "  " + f.path + "\n"; }).join("");
+      crypto.subtle.digest("SHA-256", new TextEncoder().encode(manifest)).then(function (buf) {
+        $("#sealHash").textContent = Array.prototype.map.call(new Uint8Array(buf), function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
+        $("#seal").hidden = false;
+      }).catch(function () {});
+    }
+  } catch (e) {}
+
+  /* ---------- reveal orchestration ---------- */
+  var started = false, io;
+  function onReveal(t) {
+    t.classList.add("in");
+    $$("[data-count]", t).forEach(countUp);
+    $$(".scr", t).forEach(scramble);
+    if (t.id === "heat") popCells();
+    if (t.contains(sum)) setTimeout(typeSummary, 300);
+    if (t.contains(sb)) setTimeout(fillBars, 200);
+    if (t.id === "radarCard" && radarPoly) {
+      var t0 = performance.now();
+      (function f(tt) { var k = Math.min(1, (tt - t0) / 1400); drawRadar(RM ? 1 : 1 - Math.pow(1 - k, 3)); if (k < 1) requestAnimationFrame(f); })(t0);
+    }
+  }
+  function start() {
+    if (started) return; started = true;
+    arc.style.strokeDashoffset = 678.58; arc.getBoundingClientRect();
+    setTimeout(function () { arc.style.strokeDashoffset = arcTarget; }, 60);
+    if (!("IntersectionObserver" in window)) { $$(".rv").forEach(onReveal); return; }
+    var stagger = 0, last = 0;
+    io =new IntersectionObserver(function (es) {
+      es.forEach(function (en) {
+        if (!en.isIntersecting) return; io.unobserve(en.target);
+        var now = performance.now(); stagger = now - last < 120 ? stagger + 70 : 0; last = now;
+        setTimeout(function () { onReveal(en.target); }, RM ? 0 : stagger);
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+    $$(".rv").forEach(function (e) { io.observe(e); });
+  }
+  // prepare: hide count-up targets at 0 before reveal, remember hash values
+  $$("[data-count]").forEach(function (e) { e.textContent = "0"; });
+  $$(".scr").forEach(function (e) { e.dataset.v = e.textContent.trim(); });
+  arc.style.strokeDashoffset = 678.58;
+  drawRadar(0);
+
+  /* ---------- boot sequence ---------- */
+  var boot = $("#boot");
+  function endBoot() { if (boot.classList.contains("done")) return; boot.classList.add("done"); setTimeout(start, 250); }
+  if (RM) { boot.classList.add("done"); start(); }
+  else {
+    boot.addEventListener("click", endBoot);
+    var lines = $$(".l", boot);
+    lines.forEach(function (l, j) { setTimeout(function () { l.classList.add("on"); }, 120 + j * 300); });
+    setTimeout(function () { $(".bar i", boot).style.width = "100%"; }, 80);
+    setTimeout(endBoot, 120 + lines.length * 300 + 500);
+  }
+
+  /* ---------- filters ---------- */
+  $$("#filters button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      $$("#filters button").forEach(function (x) { x.classList.toggle("on", x === b); });
+      $$(".test").forEach(function (t) { t.classList.toggle("hide", b.dataset.f !== "all" && t.dataset.s !== b.dataset.f); });
+    });
+  });
+
+  /* ---------- tilt + spotlight ---------- */
+  if (!RM && window.matchMedia("(hover: hover)").matches) {
+    $$(".card").forEach(function (c) {
+      c.addEventListener("mousemove", function (e) {
+        var r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+        c.style.setProperty("--mx", x * 100 + "%"); c.style.setProperty("--my", y * 100 + "%");
+        if (c.classList.contains("tilt") && c.classList.contains("in")) c.style.transform = "perspective(900px) rotateX(" + ((.5 - y) * 5) + "deg) rotateY(" + ((x - .5) * 6) + "deg)";
+      });
+      c.addEventListener("mouseleave", function () { if (c.classList.contains("tilt")) c.style.transform = ""; });
+    });
+  }
+
+  /* ---------- particle network ---------- */
+  var cv = $("#net"), ctx = cv.getContext && cv.getContext("2d");
+  if (ctx && !RM) {
+    var P = [], dpr = Math.min(2, window.devicePixelRatio || 1), mouse = { x: -1e4, y: -1e4 };
+    function size() {
+      cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; cv.style.width = innerWidth + "px"; cv.style.height = innerHeight + "px";
+      var target = Math.min(90, Math.round(innerWidth * innerHeight / 16000));
+      while (P.length < target) P.push({ x: Math.random() * innerWidth, y: Math.random() * innerHeight, vx: (Math.random() - .5) * .3, vy: (Math.random() - .5) * .3, hot: Math.random() < .12 });
+      P.length = target;
+    }
+    size(); addEventListener("resize", size);
+    addEventListener("mousemove", function (e) { mouse.x = e.clientX; mouse.y = e.clientY; });
+    (function frame() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, innerWidth, innerHeight);
+      for (var i = 0; i < P.length; i++) {
+        var p = P[i]; p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > innerWidth) p.vx *= -1; if (p.y < 0 || p.y > innerHeight) p.vy *= -1;
+        var dxm = p.x - mouse.x, dym = p.y - mouse.y, dm = dxm * dxm + dym * dym;
+        if (dm < 14000) { p.x += dxm / 80; p.y += dym / 80; }
+        for (var j = i + 1; j < P.length; j++) {
+          var q = P[j], dx = p.x - q.x, dy = p.y - q.y, d = dx * dx + dy * dy;
+          if (d < 17000) { ctx.strokeStyle = "rgba(103,232,249," + (1 - d / 17000) * .22 + ")"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
+        }
+        ctx.fillStyle = p.hot ? "#fbbf24" : "rgba(165,180,252,.75)";
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.hot ? 2.2 : 1.4, 0, 6.283); ctx.fill();
+      }
+      requestAnimationFrame(frame);
+    })();
+  }
+})();
+</script>
+<script>
+/* Shared visual effects for the interactive tabs: confetti, flying numbers, toasts, shake, flash. */
+window.FX = (function () {
+  "use strict";
+  var RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var cv = document.getElementById("fx"), ctx = cv.getContext && cv.getContext("2d");
+  var P = [], running = false, dpr = Math.min(2, window.devicePixelRatio || 1);
+  var COLS = ["#22d3ee", "#a78bfa", "#f472b6", "#34d399", "#fbbf24", "#ffffff"];
+  function size() { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; }
+  size(); addEventListener("resize", size);
+
+  function confetti(x, y, n, power) {
+    if (RM || !ctx) return;
+    n = n || 150; power = power || 1;
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, v = (3 + Math.random() * 10) * power;
+      P.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 7 * power, r: 3 + Math.random() * 4, c: COLS[i % COLS.length],
+        rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4, life: 1, shape: i % 3 });
+    }
+    if (!running) { running = true; requestAnimationFrame(tick); }
+  }
+  function tick() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, innerWidth, innerHeight);
+    P = P.filter(function (p) { return p.life > 0 && p.y < innerHeight + 40; });
+    P.forEach(function (p) {
+      p.vy += 0.25; p.vx *= 0.985; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= 0.0055;
+      ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 1.6)); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c;
+      if (p.shape === 0) ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+      else if (p.shape === 1) { ctx.beginPath(); ctx.arc(0, 0, p.r / 1.4, 0, 6.283); ctx.fill(); }
+      else { ctx.beginPath(); ctx.moveTo(0, -p.r); ctx.lineTo(p.r, p.r); ctx.lineTo(-p.r, p.r); ctx.fill(); }
+      ctx.restore();
+    });
+    if (P.length) requestAnimationFrame(tick); else { running = false; ctx.clearRect(0, 0, innerWidth, innerHeight); }
+  }
+  function centerOf(el) { var r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+
+  function float(text, from, to, color) {
+    var e = document.createElement("div");
+    e.className = "floatnum"; e.textContent = text; e.style.color = color; e.style.left = from.x + "px"; e.style.top = from.y + "px";
+    document.body.appendChild(e);
+    if (RM || !e.animate) { setTimeout(function () { e.remove(); }, 500); return; }
+    var dx = to ? to.x - from.x : 0, dy = to ? to.y - from.y : -80;
+    e.animate([
+      { transform: "translate(-50%,-50%) scale(.5)", opacity: 0 },
+      { transform: "translate(-50%,-50%) scale(1.5)", opacity: 1, offset: 0.2 },
+      { transform: "translate(calc(-50% + " + dx + "px),calc(-50% + " + dy + "px)) scale(.7)", opacity: 0.1 }
+    ], { duration: 950, easing: "cubic-bezier(.5,0,.3,1)" }).onfinish = function () { e.remove(); };
+  }
+  function toast(title, body, kind) {
+    var host = document.getElementById("toasts"), t = document.createElement("div");
+    t.className = "toast " + (kind || ""); t.innerHTML = "<b></b><span></span>";
+    t.firstChild.textContent = title; t.lastChild.textContent = body; host.appendChild(t);
+    while (host.children.length > 3) host.firstChild.remove();
+    setTimeout(function () { t.classList.add("out"); setTimeout(function () { t.remove(); }, 450); }, 3400);
+  }
+  function shake(el) {
+    if (RM || !el || !el.animate) return;
+    el.animate([{ transform: "translate(0,0)" }, { transform: "translate(-9px,2px)" }, { transform: "translate(8px,-3px)" },
+      { transform: "translate(-6px,1px)" }, { transform: "translate(3px,0)" }, { transform: "translate(0,0)" }], { duration: 430 });
+  }
+  function flash(color) {
+    var f = document.getElementById("flash"); if (RM || !f.animate) return;
+    f.style.background = "radial-gradient(ellipse at center,transparent 30%," + color + ")";
+    f.animate([{ opacity: 0 }, { opacity: 1 }, { opacity: 0 }], { duration: 550 });
+  }
+  return { RM: RM, confetti: confetti, float: float, toast: toast, shake: shake, flash: flash, centerOf: centerOf };
+})();
+</script>
+<script>
+/* Readiness Lab: a playable what-if simulator over this scan's control tests.
+   Scoring mirrors scanner.ScanResult.score: severity-weighted share of applicable tests passing, Python-style rounding. */
+(function () {
+  "use strict";
+  var EV = JSON.parse(document.getElementById("ev").textContent);
+  var W = { critical: 10, high: 5, medium: 2, low: 1 };
+  var C = 2 * Math.PI * 106, C2 = 2 * Math.PI * 126, READY = 85;
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+  var pyRound = function (x) { var f = Math.floor(x); return Math.abs(x - f - 0.5) < 1e-9 ? (f % 2 ? f + 1 : f) : Math.round(x); };
+  var wOf = function (t) { return W[t.severity] || 1; };
+
+  var tests = EV.control_tests.filter(function (t) { return t.status !== "N/A"; });
+  var byId = {}; tests.forEach(function (t) { byId[t.id] = t; });
+  var orig = {}; tests.forEach(function (t) { orig[t.id] = t.status === "PASS"; });
+  var st = Object.assign({}, orig);
+  var total = tests.reduce(function (a, t) { return a + wOf(t); }, 0);
+  var earned = function () { return tests.reduce(function (a, t) { return a + (st[t.id] ? wOf(t) : 0); }, 0); };
+  var score = function () { return total ? pyRound(100 * earned() / total) : 100; };
+  var colors = function (s) { return s >= READY ? ["#22d3ee", "#34d399"] : s >= 60 ? ["#fb923c", "#fbbf24"] : ["#e11d48", "#f43f5e"]; };
+  var rankOf = function (s) { return s >= 100 ? "S" : s >= READY ? "A" : s >= 70 ? "B" : s >= 55 ? "C" : s >= 40 ? "D" : "F"; };
+
+  var lg = $("#lg"), svg = $("#labSvg"), arc = $("#labArc"), ghost = $("#labGhost"), knob = $("#labKnob"), stage = $("#labStage");
+  var numEl = $("#labNum"), rankEl = $("#labRank"), ptsEl = $("#labPts"), tgtEl = $("#labTarget"), planEl = $("#labPlan");
+  var deck = $("#deck"), autoBtn = $("#labAuto"), achEl = $("#ach");
+  var target = score() >= READY ? 100 : READY, breaks = 0, busy = false, introDone = false, lastRank = "";
+
+  /* ---------- achievements ---------- */
+  var ACH = [
+    { id: "first", i: "🔧", n: "First fix", d: "Remediate any control" },
+    { id: "crit", i: "🎯", n: "Critical thinker", d: "Fix a critical-severity control" },
+    { id: "ready", i: "🛡️", n: "Audit ready", d: "Reach " + READY + "% readiness" },
+    { id: "flawless", i: "💎", n: "Flawless", d: "Hit 100%" },
+    { id: "auto", i: "⚡", n: "Autopilot", d: "Reach a target with auto-fix" },
+    { id: "chaos", i: "🔥", n: "Chaos engineer", d: "Break 3 controls" },
+    { id: "melt", i: "☢️", n: "Meltdown", d: "Drop below 25%" }
+  ];
+  var got = {};
+  achEl.innerHTML = ACH.map(function (a) { return '<div class="badge" data-a="' + a.id + '"><span class="bi">' + a.i + "</span><div><b>" + a.n + "</b><small>" + a.d + "</small></div></div>"; }).join("");
+  $("#achT").textContent = ACH.length;
+  function unlock(id) {
+    if (got[id]) return; got[id] = true;
+    var a = ACH.filter(function (x) { return x.id === id; })[0], b = achEl.querySelector('[data-a="' + id + '"]');
+    b.classList.add("on", "new"); setTimeout(function () { b.classList.remove("new"); }, 700);
+    $("#achN").textContent = Object.keys(got).length;
+    FX.toast("🏆 Achievement unlocked · " + a.n, a.d, "");
+  }
+
+  /* ---------- control deck ---------- */
+  var order = tests.slice().sort(function (a, b) { return (orig[a.id] - orig[b.id]) || (wOf(b) - wOf(a)); });
+  deck.innerHTML = order.map(function (t) {
+    return '<button class="ctl" data-id="' + esc(t.id) + '"><div class="row"><span class="cst"></span><span class="cw"></span></div>' +
+      "<b>" + esc(t.title) + "</b><small>" + esc(t.severity.toUpperCase() + " · " + t.soc2.concat(t.iso27001).join(" · ")) + '</small><span class="act"></span></button>';
+  }).join("");
+  function renderDeck(need) {
+    var needIds = {}; (need || []).forEach(function (t) { needIds[t.id] = 1; });
+    Array.prototype.forEach.call(deck.children, function (b) {
+      var t = byId[b.dataset.id], ok = st[t.id], w = wOf(t);
+      b.classList.toggle("pass", ok); b.classList.toggle("fail", !ok); b.classList.toggle("need", !!needIds[t.id]);
+      b.querySelector(".cst").textContent = ok ? "PASS" : "FAIL";
+      b.querySelector(".cw").textContent = ok ? w + " pts" : "+" + w;
+      b.querySelector(".act").textContent = ok ? "CLICK TO BREAK" : "CLICK TO FIX ▸";
+      b.setAttribute("aria-label", t.title + ": " + (ok ? "passing, click to break" : "failing, click to fix") + " (" + w + " points)");
+    });
+  }
+
+  /* ---------- odometer number ---------- */
+  function odo(v) {
+    if (!numEl.firstChild) {
+      var strip = "0123456789".split("").map(function (d) { return "<span>" + d + "</span>"; }).join("");
+      numEl.innerHTML = [0, 1, 2].map(function () { return '<span class="dg"><span class="strip">' + strip + "</span></span>"; }).join("") + "<small>%</small>";
+    }
+    var s = ("00" + v).slice(-3);
+    Array.prototype.forEach.call(numEl.querySelectorAll(".dg"), function (d, i) {
+      d.classList.toggle("off", (i === 0 && v < 100) || (i === 1 && v < 10));
+      d.firstChild.style.transform = "translateY(" + -Number(s[i]) + "em)";
+    });
+    numEl.setAttribute("aria-label", v + " percent");
+  }
+
+  /* ---------- gauge + plan ---------- */
+  function needed() {
+    var fails = tests.filter(function (t) { return !st[t.id]; }).sort(function (a, b) { return wOf(b) - wOf(a); });
+    var out = [], e = earned();
+    for (var i = 0; i < fails.length && pyRound(100 * e / total) < target; i++) { out.push(fails[i]); e += wOf(fails[i]); }
+    return { list: out, proj: pyRound(100 * e / total) };
+  }
+  function renderPlan() {
+    var n = needed(), s = score();
+    if (!n.list.length) planEl.innerHTML = s >= target ? "✓ Target met: you're at <b>" + s + "%</b>." + (s < 100 ? " Drag the dial higher." : " Perfect score.") : "";
+    else planEl.innerHTML = "Fix <b>" + n.list.length + "</b> control" + (n.list.length > 1 ? "s" : "") + " to reach <b>" + n.proj + "%</b>, highest-value first:<br>" +
+      n.list.map(function (t) { return '<span class="chip"><b>+' + wOf(t) + "</b> " + esc(t.id) + "</span>"; }).join("");
+    autoBtn.disabled = !n.list.length || busy;
+    autoBtn.textContent = n.list.length ? "⚡ Auto-fix " + n.list.length + " to target" : "⚡ Auto-fix to target";
+    renderDeck(n.list);
+  }
+  function renderGauge() {
+    var s = score(), c = colors(s), r = rankOf(s);
+    arc.style.strokeDashoffset = C * (1 - s / 100);
+    $("#labS1").setAttribute("stop-color", c[0]); $("#labS2").setAttribute("stop-color", c[1]);
+    lg.style.setProperty("--c", c[1]); stage.style.setProperty("--c", c[1]);
+    odo(s);
+    if (r !== lastRank) { rankEl.textContent = r; rankEl.classList.remove("pop"); void rankEl.offsetWidth; rankEl.classList.add("pop"); lastRank = r; }
+    ptsEl.textContent = earned() + " / " + total + " PTS";
+  }
+  function setTarget(v) {
+    target = Math.max(1, Math.min(100, Math.round(v)));
+    var a = target / 100 * 2 * Math.PI;
+    knob.setAttribute("transform", "translate(" + (150 + 126 * Math.sin(a)).toFixed(1) + " " + (150 - 126 * Math.cos(a)).toFixed(1) + ")");
+    ghost.setAttribute("stroke-dasharray", (C2 * target / 100).toFixed(1) + " " + C2.toFixed(1));
+    tgtEl.textContent = target + "%"; knob.setAttribute("aria-valuenow", target);
+    renderPlan();
+  }
+
+  /* ---------- milestones ---------- */
+  function milestone(before, after) {
+    var g = FX.centerOf(lg);
+    if (after >= READY && before < READY) { FX.confetti(g.x, g.y, 170); FX.toast("✅ AUDIT READY · " + after + "%", "Crossed the " + READY + "% audit-ready line.", "good"); unlock("ready"); }
+    if (after === 100 && before < 100) { FX.confetti(g.x, g.y, 260, 1.3); setTimeout(function () { FX.confetti(innerWidth * 0.2, innerHeight * 0.4, 120); FX.confetti(innerWidth * 0.8, innerHeight * 0.4, 120); }, 250); unlock("flawless"); }
+    if (before >= READY && after < READY) FX.toast("⚠ Readiness lost · " + after + "%", "Below the " + READY + "% audit-ready line.", "bad");
+    if (after < 25) unlock("melt");
+  }
+
+  /* ---------- interactions ---------- */
+  function toggle(id, b) {
+    var t = byId[id], w = wOf(t), before = score();
+    st[id] = !st[id];
+    var from = FX.centerOf(b), to = FX.centerOf(lg);
+    b.classList.remove("flip"); void b.offsetWidth; b.classList.add("flip");
+    if (st[id]) {
+      FX.float("+" + w, from, to, "#34d399");
+      unlock("first"); if (t.severity === "critical") unlock("crit");
+    } else {
+      breaks++;
+      FX.float("−" + w, from, null, "#f43f5e"); FX.shake(stage); FX.flash("rgba(244,63,94,.55)");
+      numEl.classList.remove("glitch"); void numEl.offsetWidth; numEl.classList.add("glitch");
+      if (breaks >= 3) unlock("chaos");
+    }
+    renderPlan();
+    var after = score();
+    setTimeout(function () { renderGauge(); milestone(before, after); }, st[id] && !FX.RM ? 520 : 0);
+  }
+  deck.addEventListener("click", function (e) { var b = e.target.closest(".ctl"); if (b && !busy) toggle(b.dataset.id, b); });
+
+  autoBtn.addEventListener("click", function () {
+    var list = needed().list; if (!list.length || busy) return;
+    busy = true; autoBtn.disabled = true; var i = 0;
+    (function next() {
+      if (i >= list.length) { busy = false; renderPlan(); if (score() >= target) setTimeout(function () { unlock("auto"); }, 600); return; }
+      var t = list[i++], b = deck.querySelector('[data-id="' + t.id + '"]');
+      toggle(t.id, b); setTimeout(next, FX.RM ? 0 : 700);
+    })();
+  });
+  $("#labReset").addEventListener("click", function () {
+    if (busy) return;
+    st = Object.assign({}, orig); breaks = 0; renderPlan(); renderGauge();
+    FX.toast("↺ Back to the scanned state", "Readiness " + score() + "% · achievements kept", "");
+  });
+
+  /* dial: drag anywhere on the ring to move the target knob */
+  var dragging = false;
+  function fromEvent(e, jump) {
+    var p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+    var q = p.matrixTransform(svg.getScreenCTM().inverse());
+    var a = Math.atan2(q.x - 150, -(q.y - 150)); if (a < 0) a += 2 * Math.PI;
+    var v = a / (2 * Math.PI) * 100;
+    if (!jump) { if (target > 75 && v < 25) v = 100; else if (target < 25 && v > 75) v = 1; }
+    setTarget(v);
+  }
+  svg.addEventListener("pointerdown", function (e) { dragging = true; lg.classList.add("drag"); try { svg.setPointerCapture(e.pointerId); } catch (x) {} fromEvent(e, true); e.preventDefault(); });
+  svg.addEventListener("pointermove", function (e) { if (dragging) fromEvent(e, false); });
+  ["pointerup", "pointercancel"].forEach(function (ev) { svg.addEventListener(ev, function () { dragging = false; lg.classList.remove("drag"); }); });
+  knob.addEventListener("keydown", function (e) {
+    var d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 5, PageDown: -5 }[e.key];
+    if (e.key === "Home") d = 1 - target; if (e.key === "End") d = 100 - target;
+    if (d) { setTarget(target + d); e.preventDefault(); }
+  });
+
+  /* ---------- init ---------- */
+  odo(0); setTarget(target); renderDeck(needed().list);
+  document.addEventListener("tabshow", function (e) {
+    if (e.detail !== "lab" || introDone) return;
+    introDone = true;
+    setTimeout(renderGauge, FX.RM ? 0 : 450);
+  });
+})();
+</script>
+<script>
+/* Agent Pipeline: a scripted, mocked run of the PR compliance autopilot.
+   Static scores are real (computed from this scan's control tests, mirroring demo/risky_change.py and `auditbot fix`);
+   the PR, agent messages, CI jobs and Prometheus telemetry are illustrative. */
+(function () {
+  "use strict";
+  var EV = JSON.parse(document.getElementById("ev").textContent);
+  var W = { critical: 10, high: 5, medium: 2, low: 1 };
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+  var pyRound = function (x) { var f = Math.floor(x); return Math.abs(x - f - 0.5) < 1e-9 ? (f % 2 ? f + 1 : f) : Math.round(x); };
+  var colOf = function (s) { return s >= 85 ? "var(--pass)" : s >= 60 ? "var(--med)" : "var(--fail)"; };
+
+  /* ---------- real static scores ---------- */
+  var T = {}; EV.control_tests.forEach(function (t) { T[t.id] = t; });
+  var FALLBACK = {
+    "NET-OPEN-ADMIN": { title: "Admin ports (SSH/RDP) not exposed to the internet", severity: "critical", soc2: ["CC6.6"], iso27001: ["A.8.20", "A.8.22"] },
+    "DB-ENCRYPTION": { title: "Databases encrypted at rest", severity: "high", soc2: ["CC6.1", "CC6.7"], iso27001: ["A.8.24"] },
+    "SECRET-HARDCODED": { title: "No hardcoded credentials in source or config", severity: "critical", soc2: ["CC6.1"], iso27001: ["A.5.17", "A.8.24"] },
+    "LOG-AUDIT-TRAIL": { title: "Audit logging enabled (CloudTrail)", severity: "high", soc2: ["CC7.2", "CC7.3"], iso27001: ["A.8.15", "A.8.16"] }
+  };
+  var info = function (id) { return T[id] || FALLBACK[id]; };
+  var applicable = function (id) { return T[id] && T[id].status !== "N/A"; };
+  function scoreWith(over) {
+    var tot = 0, got = 0;
+    EV.control_tests.forEach(function (t) {
+      if (t.status === "N/A") return;
+      var w = W[t.severity] || 1, s = over[t.id] || t.status; tot += w; if (s === "PASS") got += w;
+    });
+    return tot ? pyRound(100 * got / tot) : 100;
+  }
+  var RISKY = [["NET-OPEN-ADMIN", "infra/main.tf", "SSH (22) open to 0.0.0.0/0"], ["DB-ENCRYPTION", "infra/main.tf", "storage_encrypted = false"], ["SECRET-HARDCODED", "app/settings.py", "AWS access key in source"]];
+  var FIXABLE = ["NET-OPEN-ADMIN", "DB-ENCRYPTION", "SECRET-HARDCODED", "LOG-AUDIT-TRAIL"];   // ids with offline fix templates in fixer.py
+  var riskyOver = {}, fixOver = {};
+  RISKY.forEach(function (r) { if (applicable(r[0])) riskyOver[r[0]] = "FAIL"; });
+  FIXABLE.forEach(function (id) { if (applicable(id)) fixOver[id] = "PASS"; });
+  var S0 = EV.summary.readiness_score, S1 = scoreWith(riskyOver), S2 = scoreWith(fixOver);
+  var resolved = FIXABLE.filter(function (id) { return applicable(id) && (riskyOver[id] || T[id].status === "FAIL"); }).length;
+
+  /* ---------- stages / rail ---------- */
+  var STAGES = [
+    { ic: "⇣", n: "PR intake", w: "webhook" },
+    { ic: "⌕", n: "Compliance analyst", w: "agent" },
+    { ic: "✎", n: "Remediation agent", w: "code + tests" },
+    { ic: "⚙", n: "CI/CD pipeline", w: "GitHub Actions" },
+    { ic: "◉", n: "Telemetry sub-agent", w: "Prometheus" },
+    { ic: "Δ", n: "Delta analyst", w: "main vs PR" },
+    { ic: "⚖", n: "Decision agent", w: "merge gate" }
+  ];
+  var rail = $("#rail");
+  rail.innerHTML = STAGES.map(function (s, i) {
+    return (i ? '<div class="wire"></div>' : "") + '<div class="node" data-i="' + i + '"><div class="nic"><span>' + s.ic +
+      '</span><svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="33"/></svg></div><b>' + s.n + "</b><small>" + s.w + '</small><em class="nt"></em></div>';
+  }).join("");
+  var nodes = rail.querySelectorAll(".node"), wires = rail.querySelectorAll(".wire");
+  var body = $("#svBody"), plog = $("#plog"), views = [], cur = -1, live = false;
+
+  function setNode(i, state, note) {
+    nodes[i].className = "node " + state + (nodes[i].classList.contains("sel") ? " sel" : "");
+    if (note != null) nodes[i].querySelector(".nt").textContent = note;
+    if (state === "run") {
+      if (wires[i - 1]) wires[i - 1].className = "wire done";
+      if (wires[i]) wires[i].className = "wire flow";
+      nodes[i].scrollIntoView && rail.scrollTo({ left: nodes[i].offsetLeft - rail.clientWidth / 2 + 56, behavior: "smooth" });
+    }
+  }
+  function showView(i) {
+    views.forEach(function (v, j) { if (v) v.hidden = j !== i; });
+    Array.prototype.forEach.call(nodes, function (n, j) { n.classList.toggle("sel", j === i); });
+    $("#svTitle").textContent = "STAGE " + (i + 1) + "/" + STAGES.length + " · " + STAGES[i].n.toUpperCase();
+    var m = $("#svMode"), isLive = live && i === cur;
+    m.textContent = isLive ? "● LIVE" : "◀ REPLAY"; m.className = "live" + (isLive ? "" : " rep");
+  }
+  function view(i, html) {
+    var d = document.createElement("div"); d.className = "svx"; d.innerHTML = html;
+    views[i] = d; body.appendChild(d); cur = i; showView(i); return d;
+  }
+  rail.addEventListener("click", function (e) { var n = e.target.closest(".node"); if (n && views[+n.dataset.i]) showView(+n.dataset.i); });
+
+  /* ---------- run control ---------- */
+  var runId = 0, speed = 1, scen = "A", clock = 0, started = false, STOP = {};
+  function sleep(id, ms) {
+    clock += ms;
+    return new Promise(function (res, rej) { setTimeout(function () { if (id === runId) res(); else rej(STOP); }, FX.RM ? 0 : ms / speed); });
+  }
+  var AG = { github: "github", router: "orchestrator", analyst: "compliance-analyst", remed: "remediation-agent", ci: "ci", tel: "telemetry-watcher", delta: "delta-analyst", gate: "decision-agent" };
+  function log(ag, html, kind) {
+    var d = document.createElement("div"); d.className = "ll " + (kind || "");
+    var t = clock / 1000, ts = (t < 10 ? "0" : "") + t.toFixed(1);
+    d.innerHTML = '<span class="ts">' + ts + 's</span><span class="ag ' + ag + '">' + AG[ag] + "</span>" + html;
+    plog.appendChild(d); plog.scrollTop = plog.scrollHeight;
+  }
+  function countTo(el, from, to, ms, suffix) {
+    var t0 = performance.now(), dur = FX.RM ? 0 : ms / speed;
+    (function f(t) { var k = dur ? Math.min(1, (t - t0) / dur) : 1, v = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+      el.textContent = (suffix === "±" ? (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v) : v + (suffix || "")); if (k < 1) requestAnimationFrame(f); })(t0);
+  }
+  var lineCls = function (l) { return l[0] === "+" ? "add" : l[0] === "-" ? "del" : "ctx"; };
+  function typeLines(id, pre, lines, per) {
+    return lines.reduce(function (p, l) {
+      return p.then(function () { var s = document.createElement("span"); s.className = "dl " + lineCls(l); s.textContent = l || " "; pre.appendChild(s); pre.scrollTop = pre.scrollHeight; return sleep(id, per); });
+    }, Promise.resolve());
+  }
+  function hl(src) {
+    return String(src).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }).replace(/(#[^\n]*)|("[^"\n]*")|\b(def|assert|for|in|not|import|from|all|and|return)\b/g, function (m, cm, str, kw) {
+      return cm ? '<span class="cm">' + cm + "</span>" : str ? '<span class="str">' + str + "</span>" : '<span class="kw">' + kw + "</span>";
+    });
+  }
+  function typeChars(id, pre, text) {
+    var i = 0, step = 4;
+    return new Promise(function (res, rej) {
+      (function f() {
+        i = Math.min(text.length, i + step); pre.textContent = text.slice(0, i); pre.scrollTop = pre.scrollHeight;
+        if (i >= text.length) { pre.innerHTML = hl(text); res(); return; }
+        sleep(id, 14).then(f, rej);
+      })();
+    });
+  }
+
+  /* ---------- telemetry mock data ---------- */
+  var N = 60, DEP = 20;
+  function rng(seed) { return function () { seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function series(seed, base, noise, after, afterNoise) {
+    var r = rng(seed), s = [], c = [];
+    for (var i = 0; i < N; i++) {
+      var b = Math.max(0, base + (r() - 0.5) * 2 * noise); s.push(b);
+      if (i < DEP) { c.push(null); continue; }
+      var k = Math.min(1, (i - DEP) / 3), tv = Math.max(0, after + (r() - 0.5) * 2 * afterNoise);
+      c.push(b * (1 - k) + tv * k);
+    }
+    return [s, c];
+  }
+  var mean = function (a) { var v = a.filter(function (x) { return x != null; }); return v.reduce(function (x, y) { return x + y; }, 0) / v.length; };
+  function panels() {
+    var B = scen === "B";
+    var P = [
+      { t: "Logins without MFA", u: "/min", ctl: "CC6.1 · A.5.17", name: "MFA enforcement", w: 5, q: 'sum(rate(auth_login_total{mfa="false"}[5m])) * 60', d: series(11, 11, 3, 0, 0), ok: function (v) { return v < 0.5; }, f: 1 },
+      { t: "Audit events delivered", u: "/min", ctl: "CC7.2 · A.8.15", name: "Audit logging", w: 5, q: "sum(rate(cloudtrail_events_delivered_total[5m])) * 60", d: series(22, 0, 0, 320, 25), ok: function (v) { return v > 50; }, f: 0 },
+      { t: "DB connections without TLS", u: "", ctl: "CC6.7 · A.8.24", name: "Encryption in transit", w: 10, q: 'sum(pg_stat_ssl_connections{ssl="false"})', d: B ? series(33, 0, 0, 38, 6) : series(33, 0, 0, 0, 0), ok: function (v) { return v < 0.5; }, f: 0 },
+      { t: "p95 latency", u: " ms", ctl: "A1.2 · SLO 250 ms", name: "Availability SLO", w: 2, q: "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))) * 1000", d: B ? series(44, 182, 7, 412, 22) : series(44, 182, 7, 187, 7), ok: function (v) { return v < 250; }, f: 0, slo: 250 }
+    ];
+    P.forEach(function (p) {
+      p.main = mean(p.d[0]); p.pr = mean(p.d[1].slice(DEP + 4)); p.mOk = p.ok(p.main); p.pOk = p.ok(p.pr);
+      p.v = p.pOk && !p.mOk ? "good" : p.pOk ? "eq" : "bad";
+      p.vt = { good: "▲ FIXED", eq: "= HEALTHY", bad: p.mOk ? "▼ REGRESSION" : "✕ STILL FAILING" }[p.v];
+      p.color = { good: "#34d399", eq: "#22d3ee", bad: "#f43f5e" }[p.v];
+      p.fmt = function (v) { return v.toFixed(p.f) + p.u; };
+    });
+    return P;
+  }
+  var gid = 0;
+  function drawChart(svg, p, dur) {
+    var s = p.d[0], c = p.d[1], Wd = 320, H = 118, pad = 6, top = 16;
+    var vals = s.concat(c.filter(function (v) { return v != null; })); if (p.slo) vals.push(p.slo);
+    var ymax = Math.max(1, Math.max.apply(null, vals) * 1.15);
+    var X = function (i) { return pad + i * (Wd - 2 * pad) / (N - 1); }, Y = function (v) { return H - pad - v / ymax * (H - pad - top); };
+    var line = function (a) { var d = "", first = true; a.forEach(function (v, i) { if (v == null) return; d += (first ? "M" : "L") + X(i).toFixed(1) + " " + Y(v).toFixed(1); first = false; }); return d; };
+    var g = "gg" + (++gid), h = '<defs><linearGradient id="' + g + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + p.color + '" stop-opacity=".38"/><stop offset="1" stop-color="' + p.color + '" stop-opacity="0"/></linearGradient></defs>';
+    [0.25, 0.5, 0.75, 1].forEach(function (f) { var y = (H - pad - f * (H - pad - top)).toFixed(1); h += '<line x1="' + pad + '" x2="' + (Wd - pad) + '" y1="' + y + '" y2="' + y + '" stroke="rgba(148,163,209,.09)"/>'; });
+    if (p.slo) h += '<line x1="' + pad + '" x2="' + (Wd - pad) + '" y1="' + Y(p.slo).toFixed(1) + '" y2="' + Y(p.slo).toFixed(1) + '" stroke="#fbbf24" stroke-opacity=".7" stroke-dasharray="4 4"/><text class="gl" x="' + (pad + 2) + '" y="' + (Y(p.slo) - 4).toFixed(1) + '" fill="#fbbf24">SLO 250</text>';
+    h += '<line x1="' + X(DEP).toFixed(1) + '" x2="' + X(DEP).toFixed(1) + '" y1="' + (top - 8) + '" y2="' + (H - pad) + '" stroke="#a78bfa" stroke-dasharray="3 3"/><text class="gl" x="' + (X(DEP) + 4).toFixed(1) + '" y="' + (top - 2) + '" fill="#a78bfa">deploy</text>';
+    h += '<path class="area" d="' + line(c) + " L" + X(N - 1).toFixed(1) + " " + (H - pad) + " L" + X(DEP).toFixed(1) + " " + (H - pad) + ' Z" fill="url(#' + g + ')"/>';
+    h += '<path class="draw" d="' + line(s) + '" fill="none" stroke="#7d89ab" stroke-width="1.4"/>';
+    h += '<path class="draw cn" d="' + line(c) + '" fill="none" stroke="' + p.color + '" stroke-width="2.2" style="filter:drop-shadow(0 0 4px ' + p.color + ')"/>';
+    svg.innerHTML = h;
+    var paths = svg.querySelectorAll(".draw");
+    Array.prototype.forEach.call(paths, function (pa, j) {
+      var L = pa.getTotalLength() || 1; pa.style.strokeDasharray = L; pa.style.strokeDashoffset = L; pa.getBoundingClientRect();
+      var d = j ? dur * (N - DEP) / N : dur, delay = j ? dur * DEP / N : 0;
+      pa.style.transition = "stroke-dashoffset " + d + "ms linear " + delay + "ms"; pa.style.strokeDashoffset = 0;
+    });
+    setTimeout(function () { var a = svg.querySelector(".area"); if (a) a.classList.add("in"); }, dur * 0.6);
+  }
+
+  /* ---------- the PR (mirrors demo/risky_change.py) ---------- */
+  var PR_TF = [' resource "aws_security_group_rule" "ssh" {', '-  description = "SSH from VPN only"', '+  description = "SSH - temp access for debugging"',
+    '-  cidr_blocks = ["10.20.0.0/16"]', '+  cidr_blocks = ["0.0.0.0/0"]', " ...", ' resource "aws_db_instance" "main" {', "-  storage_encrypted   = true", "+  storage_encrypted   = false"];
+  var PR_PY = [" DEBUG = False", "+", "+# TODO remove before release", '+AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"'];
+  var PATCH = ["--- a/infra/main.tf", "+++ b/infra/main.tf", '-  cidr_blocks = ["0.0.0.0/0"]', '+  cidr_blocks = ["10.20.0.0/16"]   # VPN only', "-  storage_encrypted   = false",
+    "+  storage_encrypted   = true", '+resource "aws_cloudtrail" "main" {', '+  name                       = "org-audit-trail"', "+  is_multi_region_trail      = true",
+    "+  enable_log_file_validation = true", "+  kms_key_id                 = aws_kms_key.logs.arn", "+}", "--- a/app/settings.py", "+++ b/app/settings.py",
+    '-AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"', '+AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]'];
+  var TESTS = [
+    "# generated by remediation-agent · guards the controls this PR touched",
+    "from compliance_kit import load_plan, repo",
+    "",
+    "def test_no_admin_ports_open_to_internet():",
+    "    for rule in load_plan().ingress_rules(port=22):",
+    '        assert "0.0.0.0/0" not in rule.cidr_blocks',
+    "",
+    "def test_databases_encrypted_at_rest():",
+    "    assert all(db.storage_encrypted for db in load_plan().rds_instances)",
+    "",
+    "def test_no_hardcoded_aws_keys():",
+    '    assert not repo().grep(r"AKIA[0-9A-Z]{16}")',
+    "",
+    "def test_cloudtrail_multi_region_with_validation():",
+    '    trail = load_plan().one("aws_cloudtrail")',
+    "    assert trail.is_multi_region_trail and trail.enable_log_file_validation"
+  ].join("\n");
+
+  /* ---------- stage scripts ---------- */
+  var tag = function (c, cls) { return '<span class="tag ' + cls + '">' + esc(c) + "</span>"; };
+  var ctlTags = function (t) { return t.soc2.map(function (c) { return tag(c, "soc"); }).join("") + t.iso27001.map(function (c) { return tag(c, "iso"); }).join(""); };
+
+  async function stPR(id) {
+    setNode(0, "run");
+    var v = view(0, '<div class="pr-head"><span class="pr-badge">⇡ Open</span><h3 style="margin:0">#217 · quick fix: temp SSH access for debugging</h3></div>' +
+      '<p class="sub" style="margin-top:8px">dev-jordan wants to merge <code>feature/debug-access</code> → <code>main</code> · 2 files changed · <span style="color:var(--pass)">+5</span> <span style="color:var(--fail)">−3</span></p>' +
+      '<div class="code"><div class="bar"><i></i><i></i><i></i>infra/main.tf</div><pre class="diff a"></pre></div>' +
+      '<div class="code"><div class="bar"><i></i><i></i><i></i>app/settings.py</div><pre class="diff b"></pre></div>');
+    log("github", "<b>pull_request.opened</b> #217 · dev-jordan → main");
+    await sleep(id, 500);
+    log("router", "webhook verified · fetching diff (2 files)");
+    await typeLines(id, $(".a", v), PR_TF, 130);
+    await typeLines(id, $(".b", v), PR_PY, 130);
+    log("router", "PR touches IaC + app config → dispatching <b>compliance-analyst</b>");
+    await sleep(id, 500);
+    setNode(0, "ok", "#217");
+  }
+
+  async function stScan(id) {
+    setNode(1, "run");
+    var v = view(1, '<div class="vs"><div><div class="big" style="color:' + colOf(S0) + '">' + S0 + '%</div><small>MAIN</small></div><div class="arrow">→</div>' +
+      '<div><div class="big sc" style="color:' + colOf(S0) + '">' + S0 + "%</div><small>PR #217 HEAD</small></div></div>" +
+      '<div class="sub">New findings vs. main</div><div class="fl"></div><div class="bn"></div>');
+    log("analyst", "checking out PR head · " + EV.files_scanned.length + " config files · " + EV.control_tests.length + " control tests");
+    await sleep(id, 700);
+    log("analyst", "control IDs come from the deterministic catalog (controls.yaml), never from the model");
+    await sleep(id, 500);
+    var fl = $(".fl", v), found = RISKY.filter(function (r) { return riskyOver[r[0]]; });
+    for (var i = 0; i < found.length; i++) {
+      var r = found[i], t = info(r[0]);
+      fl.insertAdjacentHTML("beforeend", '<div class="fr"><span class="sev ' + t.severity + '">' + t.severity + "</span><b>" + esc(t.title) + '</b><span class="loc">' + r[1] + " · " + esc(r[2]) + " · " + ctlTags(t) + "</span></div>");
+      log("analyst", "NEW " + t.severity.toUpperCase() + " <b>" + r[0] + "</b> " + r[1] + " (" + t.soc2.join(", ") + ")", "bad");
+      await sleep(id, 650);
+    }
+    var sc = $(".sc", v); sc.style.color = colOf(S1); countTo(sc, S0, S1, 1200, "%"); sc.classList.add("glitch");
+    FX.shake($(".vs", v));
+    await sleep(id, 1100);
+    $(".bn", v).innerHTML = '<div class="banner bad">⛔ Merge gate: BLOCK · readiness ' + S0 + "% → " + S1 + "% (−" + (S0 - S1) + " pts) · " + found.length + " new finding" + (found.length === 1 ? "" : "s") + "</div>";
+    log("analyst", "gate=BLOCK (" + S0 + "% → " + S1 + "%) · handing findings + file context to <b>remediation-agent</b>", "bad");
+    await sleep(id, 700);
+    setNode(1, "fail", S1 + "%");
+  }
+
+  async function stFix(id) {
+    setNode(2, "run");
+    var v = view(2, '<div class="code"><div class="bar"><i></i><i></i><i></i>patch · infra/main.tf, app/settings.py</div><pre class="diff p"></pre></div>' +
+      '<div class="code"><div class="bar"><i></i><i></i><i></i>tests/test_compliance_iac.py<span class="new">NEW</span></div><pre class="py t"></pre></div><div class="bn"></div>');
+    log("remed", "drafting minimal patch · claude-opus-5-5 · JSON-schema output");
+    await sleep(id, 700);
+    await typeLines(id, $(".p", v), PATCH, 110);
+    log("remed", "patch applied in memory → re-scanning…");
+    await sleep(id, 700);
+    log("remed", "verified: " + resolved + " findings resolved, 0 new · " + S1 + "% → " + S2 + "%", "good");
+    log("remed", "writing regression tests so these controls can't silently break again");
+    await typeChars(id, $(".t", v), TESTS);
+    $(".bn", v).innerHTML = '<div class="banner good">✓ Verified fix · ' + S1 + "% → " + S2 + "% · 4 regression tests · pushed commit <code>9f3c2e1</code></div>";
+    log("remed", "pushed 9f3c2e1 to feature/debug-access", "good");
+    await sleep(id, 500);
+    setNode(2, "ok", "+4 tests");
+  }
+
+  async function stCI(id) {
+    setNode(3, "run");
+    var JOBS = [["checkout", "actions/checkout@v4", 600], ["lint", "tflint · ruff", 900], ["unit tests", "pytest -q → 28 passed", 1500],
+      ["compliance gate", "auditbot check --base main → " + S2 + "% ≥ " + S0 + "%", 1200], ["terraform plan", "+1 to add · 2 to change · 0 to destroy", 1000], ["deploy canary", "staging · 10% of traffic", 1300]];
+    var v = view(3, '<p class="sub">workflow <code>compliance-gate.yml</code> · run #1043 · commit <code>9f3c2e1</code></p><div class="jobs">' +
+      JOBS.map(function (j) { return '<div class="job"><span class="ji"></span><span class="jn">' + j[0] + '</span><span class="jd">' + esc(j[1]) + '</span><span class="jt"></span><span class="jb"><i></i></span></div>'; }).join("") + '</div><div class="bn"></div>');
+    var rows = v.querySelectorAll(".job");
+    for (var i = 0; i < JOBS.length; i++) {
+      var row = rows[i], bar = $(".jb i", row);
+      row.classList.add("run"); log("ci", "▶ " + JOBS[i][0]);
+      bar.style.transitionDuration = (FX.RM ? 0 : JOBS[i][2] / speed) + "ms"; bar.getBoundingClientRect(); bar.style.width = "100%";
+      await sleep(id, JOBS[i][2]);
+      row.classList.remove("run"); row.classList.add("ok"); $(".jt", row).textContent = (JOBS[i][2] / 1000).toFixed(1) + "s";
+      log("ci", "✓ " + JOBS[i][0] + " · " + esc(JOBS[i][1]), "good");
+    }
+    $(".bn", v).innerHTML = '<div class="banner good">✓ 6/6 checks passed · canary <code>v2.14.0-pr217</code> live on 10% of staging</div>';
+    await sleep(id, 500);
+    setNode(3, "ok", "6/6");
+  }
+
+  var P = [];
+  async function stTel(id) {
+    setNode(4, "run"); P = panels();
+    var v = view(4, '<p class="sub">sub-agent <b>telemetry-watcher</b> · Prometheus <code>prom.staging:9090</code> · window −10m … +20m around deploy</p><div class="panels">' +
+      P.map(function (p) { return '<div class="gp"><div class="gt"><span>' + p.t + "</span>" + tag(p.ctl, "soc") + '</div><div class="gq">' + esc(p.q) + '</div><svg viewBox="0 0 320 118"></svg><div class="gs"><span>main <b>' + p.fmt(p.main) + "</b> → canary <b>" + p.fmt(p.pr) + '</b></span><span class="vchip ' + p.v + '">' + p.vt + "</span></div></div>"; }).join("") +
+      '</div><div class="glegend"><span><i style="background:#7d89ab"></i>main (stable)</span><span><i style="background:var(--cyan)"></i>PR #217 canary</span></div>');
+    log("router", "spawning sub-agent <b>telemetry-watcher</b> · scope: canary pods · 20m window");
+    await sleep(id, 600);
+    var gps = v.querySelectorAll(".gp");
+    for (var i = 0; i < P.length; i++) {
+      log("tel", "PromQL <span style=\"color:#5f6b8c\">" + esc(P[i].q.length > 60 ? P[i].q.slice(0, 58) + "…" : P[i].q) + "</span>");
+      drawChart($("svg", gps[i]), P[i], FX.RM ? 0 : 1700 / speed);
+      await sleep(id, 1500);
+      $(".vchip", gps[i]).classList.add("in");
+      var p = P[i];
+      log("tel", p.name + ": main " + p.fmt(p.main) + " → canary " + p.fmt(p.pr) + " · " + p.vt, p.v === "bad" ? "bad" : p.v === "good" ? "good" : "");
+      await sleep(id, 350);
+    }
+    var bad = P.filter(function (p) { return p.v === "bad"; }).length;
+    if (bad) log("tel", "⚠ " + bad + " runtime anomal" + (bad > 1 ? "ies" : "y") + " on canary (e.g. app connects with sslmode=disable)", "warn");
+    await sleep(id, 400);
+    setNode(4, bad ? "warn" : "ok", bad ? bad + " anomalies" : "4/4 healthy");
+  }
+
+  async function stDelta(id) {
+    setNode(5, "run");
+    var tot = 0, m = 0, pr = 0;
+    P.forEach(function (p) { tot += p.w; if (p.mOk) m += p.w; if (p.pOk) pr += p.w; });
+    var R0 = pyRound(100 * m / tot), R1 = pyRound(100 * pr / tot), dS = S2 - S0, dR = R1 - R0;
+    var v = view(5, '<div class="dgrid">' +
+      '<div class="dbox"><div class="dh">STATIC READINESS · IaC</div><div class="dr">main ' + S0 + '% → PR ' + S2 + '%</div><div class="dd ds" style="color:' + (dS >= 0 ? "var(--pass)" : "var(--fail)") + '">±0</div></div>' +
+      '<div class="dbox"><div class="dh">RUNTIME POSTURE · TELEMETRY</div><div class="dr">main ' + R0 + '% → PR ' + R1 + '%</div><div class="dd dr2" style="color:' + (dR >= 0 ? "var(--pass)" : "var(--fail)") + '">±0</div></div></div>' +
+      '<div class="dt"><div class="r h"><span>CONTROL · EVIDENCE</span><span>MAIN</span><span>PR #217</span><span>Δ</span></div></div>');
+    log("delta", "diffing control evidence: main vs PR head (static + runtime)");
+    countTo($(".ds", v), 0, dS, 1100, "±"); countTo($(".dr2", v), 0, dR, 1300, "±");
+    await sleep(id, 900);
+    var dt = $(".dt", v);
+    for (var i = 0; i < P.length; i++) {
+      var p = P[i], arrow = p.pOk === p.mOk ? "=" : p.pOk ? "▲" : "▼", ac = p.pOk === p.mOk ? "var(--muted)" : p.pOk ? "var(--pass)" : "var(--fail)";
+      dt.insertAdjacentHTML("beforeend", '<div class="r"><span>' + p.name + "<small>" + p.ctl + " · " + p.t.toLowerCase() + '</small></span><span class="' + (p.mOk ? "ok" : "no") + '">' + (p.mOk ? "✓ " : "✕ ") + p.fmt(p.main) +
+        '</span><span class="' + (p.pOk ? "ok" : "no") + '">' + (p.pOk ? "✓ " : "✕ ") + p.fmt(p.pr) + '</span><span class="d" style="color:' + ac + '">' + arrow + "</span></div>");
+      log("delta", p.ctl.split(" · ")[0] + " " + p.name + ": " + (p.mOk ? "PASS" : "FAIL") + " → " + (p.pOk ? "PASS" : "FAIL") + " " + arrow, p.pOk === p.mOk ? "" : p.pOk ? "good" : "bad");
+      await sleep(id, 550);
+    }
+    var reg = P.filter(function (p) { return p.mOk && !p.pOk; });
+    log("delta", "static Δ " + (dS >= 0 ? "+" : "") + dS + " pts · runtime Δ " + (dR >= 0 ? "+" : "") + dR + " pts · regressions: " + reg.length, reg.length ? "bad" : "good");
+    await sleep(id, 500);
+    setNode(5, reg.length ? "fail" : "ok", "Δ " + (dR >= 0 ? "+" : "") + dR);
+    return { dS: dS, dR: dR, reg: reg };
+  }
+
+  async function stGate(id, d) {
+    setNode(6, "run");
+    log("gate", "weighing static Δ, runtime Δ and regressions against policy…");
+    await sleep(id, 1200);
+    var ok = !d.reg.length && d.dS >= 0 && d.dR >= 0;
+    var reasons = ok ? [
+      "Static readiness " + S0 + "% → " + S2 + "% (" + (d.dS >= 0 ? "+" : "") + d.dS + " pts), " + resolved + " findings resolved, 0 introduced",
+      "Runtime posture +" + d.dR + " pts: MFA bypass logins eliminated, audit trail delivering events",
+      "No SLO or encryption regressions on canary",
+      "4 regression tests added for the controls this PR touched"
+    ] : [
+      "Static readiness improved (" + S0 + "% → " + S2 + "%) but runtime posture fell " + Math.abs(d.dR) + " pts",
+      d.reg.map(function (p) { return p.name + " (" + p.ctl.split(" · ")[0] + "): " + p.fmt(p.main) + " → " + p.fmt(p.pr); }).join(" · "),
+      "Canary rolled back automatically; production untouched",
+      "Remediation-agent re-assigned: enforce sslmode=require in the DB client"
+    ];
+    var v = view(6, '<div class="vbig ' + (ok ? "good" : "bad") + '"><div class="vb">' + (ok ? "APPROVED ✓" : "BLOCKED ✕") + "</div><p>" +
+      (ok ? "PR #217 merged to main · canary promoted to 100%" : "PR #217 marked “changes requested” · canary rolled back") + '</p></div><ul class="reasons">' +
+      reasons.map(function (r, i) { return '<li style="animation-delay:' + (i * 0.12) + 's">' + esc(r) + "</li>"; }).join("") + "</ul>" +
+      '<div class="prc"><div class="ph"><b>auditus[bot]</b> commented on #217</div><div class="pb">' +
+      (ok ? "✅ <b>Compliance gate passed.</b> Readiness " + S2 + "% (baseline " + S0 + "%). Evidence: <code>evidence.json</code> (SHA-256 per file, commit 9f3c2e1)."
+          : "⛔ <b>Compliance gate failed at runtime.</b> CC6.7 encryption in transit regressed on canary. Static evidence alone isn't enough: please fix and re-run.") +
+      "</div></div>");
+    var c = FX.centerOf($(".vb", v));
+    if (ok) { FX.confetti(c.x, c.y, 200, 1.1); log("gate", "APPROVE · merged #217 · evidence attached", "good"); }
+    else { FX.flash("rgba(244,63,94,.6)"); FX.shake($(".vbig", v)); log("gate", "BLOCK · changes requested on #217 · canary rolled back", "bad"); }
+    setNode(6, ok ? "ok" : "fail", ok ? "merged" : "blocked");
+    FX.toast(ok ? "✅ PR #217 approved" : "⛔ PR #217 blocked", ok ? "All agents agree: merged with evidence attached." : "Runtime telemetry caught what static analysis couldn't.", ok ? "good" : "bad");
+  }
+
+  function reset() {
+    runId++; clock = 0; views = []; body.innerHTML = ""; plog.innerHTML = ""; cur = -1;
+    Array.prototype.forEach.call(nodes, function (n) { n.className = "node"; n.querySelector(".nt").textContent = ""; });
+    Array.prototype.forEach.call(wires, function (w) { w.className = "wire"; });
+    $("#pBar").style.width = "0";
+  }
+  async function play() {
+    reset(); started = true; live = true;
+    var id = runId, steps = [stPR, stScan, stFix, stCI, stTel, stDelta], d;
+    $("#pRun").textContent = "■ Restart";
+    try {
+      for (var i = 0; i < steps.length; i++) { d = await steps[i](id); $("#pBar").style.width = ((i + 1) / 7 * 100) + "%"; }
+      await stGate(id, d); $("#pBar").style.width = "100%";
+      live = false; showView(6); $("#pRun").textContent = "▶ Run again";
+    } catch (e) { if (e !== STOP) { console.error(e); } }
+  }
+
+  $("#pRun").addEventListener("click", play);
+  $("#pSpeed").addEventListener("click", function () { speed = speed === 1 ? 2 : speed === 2 ? 4 : 1; this.textContent = speed + "×"; });
+  Array.prototype.forEach.call(document.querySelectorAll("#pScen button"), function (b) {
+    b.addEventListener("click", function () {
+      Array.prototype.forEach.call(document.querySelectorAll("#pScen button"), function (x) { x.classList.toggle("on", x === b); });
+      scen = b.dataset.s; play();
+    });
+  });
+  document.addEventListener("tabshow", function (e) {
+    if (e.detail !== "pipeline" || started) return;
+    started = true;
+    (function wait() { var boot = document.getElementById("boot"); if (boot && !boot.classList.contains("done")) setTimeout(wait, 150); else setTimeout(play, 500); })();
+  });
+})();
+</script>
+<script>
+/* Auditus signature moments: wordmark decode on boot, the auditor's stamp, and Proof Mode
+   (hover any number on the Report tab to see exactly how it was derived and which evidence it points to). */
+(function () {
+  "use strict";
+  var EV = JSON.parse(document.getElementById("ev").textContent);
+  var W = { critical: 10, high: 5, medium: 2, low: 1 };
+  var RM = FX.RM;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+  var bootDone = function () { var b = $("#boot"); return !b || b.classList.contains("done"); };
+
+  /* ---------- wordmark decode on the boot screen ---------- */
+  (function () {
+    var el = $("#bootWord"); if (!el || RM || bootDone()) return;
+    var word = "AUDITUS", glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#%&*$§01", t0 = performance.now(), dur = 1100;
+    (function f(t) {
+      var k = Math.min(1, (t - t0) / dur), fixed = Math.floor(word.length * k), s = word.slice(0, fixed);
+      for (var i = fixed; i < word.length; i++) s += glyphs[(Math.random() * glyphs.length) | 0];
+      el.textContent = s; if (k < 1) requestAnimationFrame(f); else el.textContent = word;
+    })(t0);
+  })();
+
+  /* ---------- the auditor's stamp ---------- */
+  var stamp = $("#stamp"), stamped = false;
+  function slam() {
+    if (!stamp) return;
+    if (RM) { stamp.classList.add("shown"); return; }
+    stamp.classList.remove("slam"); void stamp.offsetWidth; stamp.classList.add("slam");
+    setTimeout(function () {
+      var r = stamp.getBoundingClientRect(), c = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      var ring = document.createElement("div"); ring.className = "inkring";
+      ring.style.cssText = "left:" + c.x + "px;top:" + c.y + "px;width:" + r.width + "px;height:" + r.height + "px;--w2:" + (r.width * 1.5) + "px;--h2:" + (r.height * 1.9) + "px;--sc:" + getComputedStyle(stamp).getPropertyValue("--sc");
+      document.body.appendChild(ring); setTimeout(function () { ring.remove(); }, 800);
+      FX.shake($("header.hero"));
+      if (stamp.classList.contains("ok")) { FX.confetti(c.x, c.y, 160, 1); FX.toast("✅ Audit ready", "Verified by Auditus at " + EV.summary.readiness_score + "%.", "good"); }
+      else FX.flash(stamp.classList.contains("bad") ? "rgba(244,63,94,.45)" : "rgba(251,191,36,.35)");
+    }, 300);
+  }
+  function stampWhenVisible() {
+    if (stamped || !$("#p-report").classList.contains("on")) return;
+    stamped = true;
+    (function wait() { if (!bootDone()) return setTimeout(wait, 150); setTimeout(slam, RM ? 0 : 2500); })();
+  }
+  if (stamp) stamp.addEventListener("click", slam);
+  document.addEventListener("tabshow", function (e) { if (e.detail === "report") stampWhenVisible(); });
+
+  /* ---------- proof mode ---------- */
+  var tests = EV.control_tests, app = tests.filter(function (t) { return t.status !== "N/A"; });
+  var pts = function (a) { return a.reduce(function (s, t) { return s + (W[t.severity] || 1); }, 0); };
+  var pass = app.filter(function (t) { return t.status === "PASS"; }), fail = app.filter(function (t) { return t.status === "FAIL"; });
+  var na = tests.length - app.length, S = EV.summary.readiness_score;
+  var row = function (a, b, c, cls) { return [a, b, c, cls || ""]; };
+  var sevRows = function (list) {
+    return ["critical", "high", "medium", "low"].map(function (s) {
+      var a = list.filter(function (t) { return t.severity === s; }); if (!a.length) return null;
+      var p = a.filter(function (t) { return t.status === "PASS"; });
+      return row(s.toUpperCase() + " ×" + W[s], p.length + "/" + a.length + " tests pass", pts(p) + "/" + pts(a) + " pts", p.length === a.length ? "g" : "r");
+    }).filter(Boolean);
+  };
+  var PROOFS = {
+    score: function () {
+      var exact = pts(app) ? (100 * pts(pass) / pts(app)).toFixed(2) : "100.00";
+      return { t: "Readiness score", f: "Σ passing weights / Σ applicable weights<br>= " + pts(pass) + " / " + pts(app) + " = " + exact + "% → <em>" + S + "%</em>",
+        rows: sevRows(app), note: (na ? na + " N/A test" + (na > 1 ? "s" : "") + " excluded · " : "") + "weights: critical 10 · high 5 · medium 2 · low 1", rel: ".test.FAIL", relName: "failing tests" };
+    },
+    pass: function () { return { t: "Control tests passing", f: pass.length + " PASS of " + app.length + " applicable", rows: pass.map(function (t) { return row("✓", t.id, t.severity, "g"); }), rel: ".test.PASS", relName: "passing tests" }; },
+    fail: function () { return { t: "Control tests failing", f: fail.length + " FAIL · costing " + pts(fail) + " of " + pts(app) + " pts", rows: fail.map(function (t) { return row("✕", t.id, "−" + (W[t.severity] || 1) + " pts", "r"); }), rel: ".test.FAIL", relName: "failing tests" }; },
+    findings: function () { return { t: "Findings", f: EV.findings.length + " findings, each mapped to SOC 2 + ISO controls", rows: EV.findings.map(function (f) { return row(f.id, f.rule, f.file ? f.file + ":" + f.line : "project-wide", "r"); }), rel: ".finding", relName: "finding cards" }; },
+    files: function () { return { t: "Files fingerprinted", f: "SHA-256 per file · commit " + esc((EV.target.git_commit || "n/a").slice(0, 10)), rows: EV.files_scanned.map(function (f) { return row("#", f.path, f.sha256.slice(0, 10) + "…"); }), rel: ".chain .link", relName: "evidence links" }; }
+  };
+  function sevProof(sev) {
+    return function () {
+      var a = app.filter(function (t) { return t.severity === sev; });
+      return { t: sev.charAt(0).toUpperCase() + sev.slice(1) + " tier", f: a.length + " test" + (a.length === 1 ? "" : "s") + " × " + W[sev] + " pts each",
+        rows: a.map(function (t) { return row(t.status === "PASS" ? "✓" : "✕", t.id, t.status === "PASS" ? "+" + W[sev] : "−" + W[sev], t.status === "PASS" ? "g" : "r"); }),
+        note: a.length ? "" : "No applicable tests at this severity", rel: null };
+    };
+  }
+
+  // attach to the numbers on the Report tab
+  var gnum = $(".gauge .num"); if (gnum) gnum.setAttribute("data-proof", "score");
+  var kpis = $$(".kpi"), kkeys = ["pass", "fail", "findings", "files"];
+  kpis.forEach(function (k, i) { if (kkeys[i]) k.setAttribute("data-proof", kkeys[i]); });
+  $$(".sevrow").forEach(function (r) { var name = $(".name", r); if (name) { PROOFS["sev-" + name.textContent] = sevProof(name.textContent); $(".pts", r).setAttribute("data-proof", "sev-" + name.textContent); } });
+
+  var pop = document.createElement("div"); pop.className = "proof"; pop.setAttribute("role", "tooltip"); document.body.appendChild(pop);
+  var active = null, pinned = false;
+  function scramble(el) {
+    if (RM) return;
+    var tgt = el.querySelector("[data-count]") || (el.matches("[data-count]") ? el : null); if (!tgt) return;
+    var fin = tgt.getAttribute("data-count"), t0 = performance.now();
+    (function f(t) {
+      if (t - t0 < 380) { tgt.textContent = String(Math.floor(Math.random() * Math.pow(10, fin.length))); requestAnimationFrame(f); }
+      else tgt.textContent = fin;
+    })(t0);
+  }
+  function place(el) {
+    var r = el.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight, gap = 12;
+    var x = Math.min(Math.max(12, r.left + r.width / 2 - pw / 2), innerWidth - pw - 12);
+    var y = r.bottom + gap + ph < innerHeight ? r.bottom + gap : Math.max(12, r.top - gap - ph);
+    pop.style.left = x + "px"; pop.style.top = y + "px";
+  }
+  function clearTrace() { $$(".traced").forEach(function (e) { e.classList.remove("traced"); }); $$(".proofing").forEach(function (e) { e.classList.remove("proofing"); }); }
+  function show(el) {
+    var p = PROOFS[el.getAttribute("data-proof")](); if (!p) return;
+    active = el; clearTrace(); el.classList.add("proofing");
+    var rel = p.rel ? $$(p.rel) : [];
+    rel.forEach(function (e) { e.classList.add("traced"); });
+    var rows = p.rows.slice(0, 7), more = p.rows.length - rows.length;
+    pop.innerHTML = '<div class="ph"><span>⌖ PROOF</span><span>' + (pinned ? "PINNED · ESC" : "TRACEABLE TO EVIDENCE.JSON") + "</span></div>" +
+      '<div class="pt">' + esc(p.t) + '</div><div class="pf">' + p.f + "</div>" +
+      (rows.length ? '<div class="rows">' + rows.map(function (r, i) { return '<div class="pr" style="animation-delay:' + i * 0.04 + 's"><span class="' + r[3] + '">' + esc(r[0]) + "</span><span>" + esc(r[1]) + "</span><span>" + esc(r[2]) + "</span></div>"; }).join("") + (more > 0 ? '<div class="pn">…and ' + more + " more</div>" : "") + "</div>" : "") +
+      (p.note ? '<div class="pn">' + esc(p.note) + "</div>" : "") +
+      (rel.length ? '<div class="pn">' + (pinned ? "↓ jumped to " : "Click to jump to ") + "<b>" + rel.length + " " + p.relName + "</b></div>" : "");
+    pop.classList.toggle("pinned", pinned);
+    place(el); pop.classList.add("on");
+    return rel;
+  }
+  function hide() { pop.classList.remove("on", "pinned"); clearTrace(); active = null; pinned = false; }
+
+  document.addEventListener("mouseover", function (e) {
+    if (pinned) return;
+    var el = e.target.closest && e.target.closest("[data-proof]");
+    if (el && el !== active && el.closest(".panel.on")) { show(el); scramble(el); }
+    else if (!el && active) hide();
+  });
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest && e.target.closest("[data-proof]");
+    if (!el) { if (pinned && !pop.contains(e.target)) hide(); return; }
+    pinned = true; var rel = show(el) || [];
+    if (rel.length) {
+      setTimeout(function () {
+        rel[0].scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "center" });
+        rel.forEach(function (r) { r.classList.remove("flashy"); void r.offsetWidth; r.classList.add("flashy"); });
+        pop.classList.remove("on"); clearTrace(); rel.forEach(function (r) { r.classList.add("traced"); });
+        setTimeout(function () { if (pinned) hide(); }, 2600);
+      }, 900);
+    }
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
+  addEventListener("scroll", function () { if (active && !pinned) hide(); }, { passive: true });
+  document.addEventListener("tabshow", hide);
+})();
+</script>
+<script>
+/* tabs: last, so the lab/pipeline listeners already exist when the first "tabshow" fires */
+(function () {
+  "use strict";
+  var btns = Array.prototype.slice.call(document.querySelectorAll(".tabs button")), ind = document.querySelector(".tabs .ind");
+  var names = btns.map(function (b) { return b.dataset.tab; });
+  function place(b) { ind.style.left = b.offsetLeft + "px"; ind.style.width = b.offsetWidth + "px"; }
+  function go(name, scroll) {
+    if (names.indexOf(name) < 0) name = "report";
+    btns.forEach(function (b) { var on = b.dataset.tab === name; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); if (on) place(b); });
+    document.querySelectorAll(".panel").forEach(function (p) { p.classList.toggle("on", p.id === "p-" + name); });
+    try { history.replaceState(null, "", name === "report" ? location.pathname + location.search : "#" + name); } catch (e) {}
+    if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
+    document.dispatchEvent(new CustomEvent("tabshow", { detail: name }));
+  }
+  btns.forEach(function (b) { b.addEventListener("click", function () { go(b.dataset.tab, true); }); });
+  function replace() { var b = btns.filter(function (x) { return x.classList.contains("on"); })[0]; if (b) place(b); }
+  addEventListener("resize", replace);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(replace);
+  go((location.hash || "").slice(1), false);
+})();
+</script>
+</body>
+</html>

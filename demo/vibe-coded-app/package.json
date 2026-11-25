@@ -1,0 +1,14 @@
+{
+  "name": "vibe-dashboard",
+  "private": true,
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "axois": "^1.7.0",
+    "loadash": "^4.17.21"
+  },
+  "devDependencies": {
+    "crossenv": "^7.0.3",
+    "vite": "^5.4.0"
+  }
+}

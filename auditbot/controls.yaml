@@ -1,0 +1,106 @@
+# Control test catalog: each automated test maps to SOC 2 (2017 TSC) and ISO/IEC 27001:2022 Annex A.
+# Mappings are deterministic on purpose: the LLM never invents control IDs.
+
+SECRET-HARDCODED:
+  title: No hardcoded credentials in source or config
+  severity: critical
+  soc2: [CC6.1]
+  iso27001: [A.5.17, A.8.24]
+  why: Credentials committed to a repository are exposed to everyone with read access and stay in git history forever.
+  fix: Remove the secret, rotate it immediately, and load it from a secret manager (AWS Secrets Manager, Vault) or CI secrets.
+
+DEP-TYPOSQUAT:
+  title: Dependencies are the intended packages (no typosquats or AI-hallucinated names)
+  severity: critical
+  soc2: [CC7.1, CC8.1, CC9.2]
+  iso27001: [A.5.21, A.8.28]
+  why: AI assistants invent or misspell package names; attackers register those names (typosquatting / slopsquatting), and the package's code runs on developer machines and in CI at install time.
+  fix: Replace the name with the package you meant (check the project's official docs), pin the version with a hash or lockfile, and if the wrong package was ever installed, check what it executed.
+
+AI-AGENT-CONTEXT:
+  title: AI agent context free of hidden or injected instructions
+  severity: high
+  soc2: [CC7.1, CC8.1]
+  iso27001: [A.8.25, A.8.28]
+  why: Coding agents treat files like AGENTS.md, CLAUDE.md or .cursorrules as trusted instructions; injected text or invisible characters there can make an agent write backdoors or leak secrets without a reviewer noticing.
+  fix: Remove the injected instruction or invisible characters, require code-owner review for agent instruction files, and never let agents ingest untrusted tickets or docs with write access.
+
+S3-ENCRYPTION:
+  title: Object storage encrypted at rest
+  severity: high
+  soc2: [CC6.1, CC6.7]
+  iso27001: [A.8.24]
+  why: Unencrypted buckets leave customer data readable if storage media or access keys are compromised.
+  fix: Add an aws_s3_bucket_server_side_encryption_configuration with SSE-KMS for the bucket.
+
+S3-PUBLIC:
+  title: Object storage not publicly accessible
+  severity: critical
+  soc2: [CC6.1, CC6.6]
+  iso27001: [A.8.3, A.5.15]
+  why: Public buckets are the most common source of cloud data breaches.
+  fix: Set acl to private and enable aws_s3_bucket_public_access_block with all four flags true.
+
+NET-OPEN-ADMIN:
+  title: Admin ports (SSH/RDP) not exposed to the internet
+  severity: critical
+  soc2: [CC6.6]
+  iso27001: [A.8.20, A.8.22]
+  why: SSH/RDP open to 0.0.0.0/0 invites brute-force and exploit attempts against servers.
+  fix: Restrict the ingress CIDR to the VPN/bastion range, or use SSM Session Manager instead of open SSH.
+
+DB-ENCRYPTION:
+  title: Databases encrypted at rest
+  severity: high
+  soc2: [CC6.1, CC6.7]
+  iso27001: [A.8.24]
+  why: Unencrypted databases and snapshots expose customer data if storage or backups leak.
+  fix: Set storage_encrypted = true (with a KMS key) on the database instance.
+
+DB-PUBLIC:
+  title: Databases not publicly reachable
+  severity: critical
+  soc2: [CC6.6]
+  iso27001: [A.8.20]
+  why: A publicly reachable database can be attacked directly from the internet.
+  fix: Set publicly_accessible = false and place the database in private subnets.
+
+IAM-WILDCARD:
+  title: Least-privilege IAM (no wildcard actions)
+  severity: high
+  soc2: [CC6.3]
+  iso27001: [A.5.15, A.8.2]
+  why: Wildcard IAM actions grant full admin rights and break least privilege.
+  fix: Replace "*" with the specific actions the workload needs, scoped to specific resources.
+
+IAM-MFA:
+  title: MFA enforced for human IAM access
+  severity: high
+  soc2: [CC6.1]
+  iso27001: [A.8.5]
+  why: Without MFA, a single stolen password gives full access to the cloud account.
+  fix: Attach a policy that denies actions when aws:MultiFactorAuthPresent is false, or enforce MFA via SSO.
+
+LOG-AUDIT-TRAIL:
+  title: Audit logging enabled (CloudTrail)
+  severity: high
+  soc2: [CC7.2, CC7.3]
+  iso27001: [A.8.15, A.8.16]
+  why: Without an audit trail, security incidents cannot be detected or investigated, which auditors flag immediately.
+  fix: Add an aws_cloudtrail resource (multi-region, log file validation on) writing to an encrypted bucket.
+
+APP-INSECURE-CONFIG:
+  title: Secure application code and configuration (debug, CORS, injection, XSS, TLS)
+  severity: medium
+  soc2: [CC6.6, CC8.1]
+  iso27001: [A.8.9, A.8.25, A.8.28]
+  why: Debug mode leaks internals and wildcard CORS lets any site call the API; string-built SQL or shell commands, unsanitized HTML, disabled TLS/JWT verification and client-side authorization are the shortcuts AI-generated code takes to "just work".
+  fix: Load DEBUG from the environment, list explicit CORS origins, use parameterized queries and argument lists instead of strings, escape or sanitize HTML, keep certificate and signature verification on, and enforce authorization on the server.
+
+CONTAINER-HARDENING:
+  title: Hardened container configuration
+  severity: medium
+  soc2: [CC6.8]
+  iso27001: [A.8.9]
+  why: Privileged or root containers and published database ports widen the blast radius of a compromise.
+  fix: Remove privileged mode, run as a non-root user, and keep database ports on the internal network only.

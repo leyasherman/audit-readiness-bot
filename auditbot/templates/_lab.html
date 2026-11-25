@@ -1,0 +1,38 @@
+    <div class="lab-head rv">
+      <span class="eyebrow"><span class="dot"></span>READINESS LAB · INTERACTIVE SIMULATION</span>
+      <h1>Play the audit.</h1>
+      <p class="lead">Fix failing controls, break passing ones, drag the dial to set a target. Every point uses the scanner's real severity weights (critical 10 · high 5 · medium 2 · low 1), so you see what each fix is worth before you write it. Nothing here touches the repo.</p>
+    </div>
+    <div class="lab">
+      <div class="card lab-stage rv" id="labStage">
+        <div class="lg" id="lg">
+          <svg viewBox="0 0 300 300" id="labSvg">
+            <defs><linearGradient id="labGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" id="labS1" stop-color="#fb923c"/><stop offset="1" id="labS2" stop-color="#fbbf24"/></linearGradient></defs>
+            <g class="orbit"><circle cx="150" cy="150" r="143" fill="none" stroke="rgba(148,163,209,.25)" stroke-dasharray="2 8"/></g>
+            <circle cx="150" cy="150" r="126" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>
+            <circle id="labGhost" cx="150" cy="150" r="126" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="4" stroke-dasharray="0 999" stroke-linecap="round" transform="rotate(-90 150 150)"/>
+            <circle cx="150" cy="150" r="106" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="16"/>
+            <circle id="labArc" cx="150" cy="150" r="106" fill="none" stroke="url(#labGrad)" stroke-width="16" stroke-linecap="round" transform="rotate(-90 150 150)" stroke-dasharray="666.02" stroke-dashoffset="666.02"/>
+            <g id="labKnob" class="knob" tabindex="0" role="slider" aria-label="Target readiness score" aria-valuemin="1" aria-valuemax="100" transform="translate(150 24)">
+              <circle class="halo" r="12"/>
+              <circle class="core" r="13" fill="#0b1226" stroke="#fff" stroke-width="2"/><circle r="5" fill="#fff"/>
+            </g>
+          </svg>
+          <div class="mid"><div>
+            <div class="odo" id="labNum"></div>
+            <div><span class="rank" id="labRank">–</span></div>
+            <div class="pts" id="labPts"></div>
+          </div></div>
+        </div>
+        <div class="target">
+          <div class="trow"><span>TARGET</span><b id="labTarget">85%</b></div>
+          <div class="plan" id="labPlan"></div>
+          <div class="actions" style="margin-top:0"><button class="btn primary" id="labAuto">⚡ Auto-fix to target</button><button class="btn" id="labReset">↺ Reset</button></div>
+          <div class="hint">◉ DRAG THE DIAL · OR FOCUS IT AND USE ← →</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:16px;min-width:0">
+        <div class="card rv"><h3>Control deck</h3><p class="sub">Click a red card to remediate it · click a green one to see what breaking it would cost</p><div class="deck" id="deck"></div></div>
+        <div class="card rv"><h3>Achievements · <span id="achN">0</span>/<span id="achT">0</span></h3><p class="sub">Unlocked as you play</p><div class="ach" id="ach"></div></div>
+      </div>
+    </div>

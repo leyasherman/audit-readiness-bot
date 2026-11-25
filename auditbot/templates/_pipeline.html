@@ -1,0 +1,18 @@
+    <div class="lab-head rv">
+      <span class="eyebrow"><span class="dot"></span>AGENT PIPELINE · PR COMPLIANCE AUTOPILOT</span>
+      <h1>From pull request to verdict.</h1>
+      <p class="lead">A team of agents takes a PR from intake to merge decision: static compliance analysis, auto-remediation with tests, CI/CD, live telemetry from the canary, a before/after compliance delta, and a final gate.</p>
+      <p class="mock">SIMULATED RUN · agent steps and Prometheus telemetry are mocked · static scores are computed from this scan's control tests</p>
+      <div class="pctl">
+        <div class="seg" id="pScen"><button class="on" data-s="A">✓ Fix verified → approve</button><button data-s="B">✕ Runtime regression → block</button></div>
+        <div class="seg"><button class="go" id="pRun">▶ Run</button><button id="pSpeed" title="Playback speed">1×</button></div>
+      </div>
+    </div>
+    <div class="card railbox rv">
+      <div class="rail" id="rail"></div>
+      <div class="pbar"><i id="pBar"></i></div>
+    </div>
+    <div class="pgrid">
+      <div class="card sv rv"><div class="svh"><span id="svTitle">WAITING FOR A PULL REQUEST…</span><span id="svMode" class="live"></span></div><div id="svBody"></div></div>
+      <div class="card term2 rv"><div class="th"><span class="dot"></span>AGENT LOG</div><div class="tb" id="plog"></div></div>
+    </div>
